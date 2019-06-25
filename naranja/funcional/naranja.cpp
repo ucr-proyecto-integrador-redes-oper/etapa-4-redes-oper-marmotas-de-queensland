@@ -65,6 +65,7 @@ Naranja::~Naranja(){
 //funcionamiento interno:
 
 //inicia le funcionamiento del naranja
+//debe enviarse en broadcast a izq y der.
 void Naranja::iniciar(){
   this->enviarInicial();
   //recibir 5 paquetes de los otros naranjas
@@ -186,6 +187,9 @@ void Naranja::enviarInicial(){
   memcpy((char*)&inicial.ip,(char*)&this->miIp,4);
   this->client->writeToServer((char*)&inicial,sizeof(inicial));
   //portNaranjas->sendTo((char*)&inicial,ipDer,portDer);
+//enviar por der e izq
+//recibir paquetes y guardarlos(si ya los tengo solo los envio), y luego se envian
+//se reciben hasta que sean mis paquetes,
 }
 
 void Naranja::enviarSolicitud(){
