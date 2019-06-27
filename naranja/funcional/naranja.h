@@ -6,7 +6,6 @@
 #include <thread>
 #include <utility> //pares
 #include "paquetes.h"
-#include "sudp.h"
 
 #include <stdio.h>
 #include <netdb.h>
@@ -14,6 +13,7 @@
 #include <iostream>
 #include <sstream>
 #include <string.h>
+#include <fstream>
 
 //////////
 #include "client.h"
@@ -41,6 +41,7 @@ private:
 	short portIzq;
 
 	uint32_t miIp;
+
 	//falta 2 ports mios para naranjas y azules
 	//SecureUDP* portAzul;
 	//SecureUDP* portNaranjas;
@@ -58,10 +59,10 @@ private:
 	//file csv
 	int line_count;
 	int count_Lines(string &path);
-	
+
 	//bitmap para todos los azules (de todos los naranjas) que se estan ocupando
 //revisar en le bitmap los vecinos del nodo que estoy pidiendo, por si ya estan siendo ocupados
-	//enviarles la ip y port al nuevo azul	
+	//enviarles la ip y port al nuevo azul
 	BitMap* grafo;
 	//bitmap para saber cuales son mis azules.
 	BitMap* misAzules;
@@ -69,7 +70,7 @@ private:
 	map<uint16_t,pair <uint32_t, uint16_t>> mapAzules;
 
 public:
-	Naranja(int,short,char*,short,char*,short);
+	Naranja(int,short,string,char*,short,char*,short);
 	~Naranja();
 
 	//funcionamiento interno:
@@ -91,7 +92,7 @@ public:
 	void enviarCompleteAzules();//envia un pack a los azules para que empiecen
 
 	void connectC(int port){
-		client->connectClient("10.1.137.131",port);
+		client->connectClient("",port);
 	}
 };
 
