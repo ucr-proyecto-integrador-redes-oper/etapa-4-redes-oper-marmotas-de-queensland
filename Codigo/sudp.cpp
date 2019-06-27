@@ -5,6 +5,7 @@
 #include <chrono>
 #include <iostream>
 
+#include <string>
 
 
 /*
@@ -43,10 +44,10 @@ void SecureUDP::sendTo(char* data, char* r_ip, uint16_t r_port){
   curr_frame->type = 0;
   curr_frame->sn = sn;
   memcpy((char*) curr_frame->payload, data , PAYLOAD_CAP);
+
   //sets the map value and inserts it using the sn as key.
   val->frame = curr_frame;
   val->rdata = receiver_data;
-  val->ack_received = false;
   s_map[sn] = val;
 
   sn++;
@@ -68,14 +69,12 @@ void SecureUDP::receive(char* buffer){
   //std::cout << "Waiting on signal from receiver thread." << std::endl;
   rq_cv.wait(rq_lock,[&](){return !r_queue.empty();});
   //std::cout << "Siganl received." << std::endl;
-
   curr_frame = r_queue.front();
   r_queue.pop();
   //std::cout << "Queue operations working." << std::endl;
 
   //copies the payload.
   memcpy((char*) buffer, (char*) curr_frame->payload,PAYLOAD_CAP);
-  std::cout << curr_frame->payload << std::endl;
   delete curr_frame;
 }
 
@@ -99,8 +98,6 @@ void SecureUDP::setSocket(){
   }
 
   memset(&servaddr, 0, sizeof(servaddr));
-  memset(&cliaddr, 0, sizeof(cliaddr));
-
   servaddr.sin_family    = AF_INET; // IPv4
   servaddr.sin_addr.s_addr = INADDR_ANY;
   servaddr.sin_port = htons(port);
@@ -110,53 +107,63 @@ void SecureUDP::setSocket(){
 
 void SecureUDP::sender(){
   sudp_frame *curr_frame;
-  sudp_rdata *rdata;
-  bool ack_received;
+  sudp_rdata *dest_data;
+
+
+  sockaddr_in dest_addr;
+  memset(&dest_addr, 0, sizeof(dest_addr));
+
   while(true){
     std::this_thread::sleep_for(std::chrono::milliseconds(wait_time));
 
+    m_lock.lock();
     for(auto itr = s_map.begin(); itr != s_map.end();itr++){
       if(!s_map.empty()){
         curr_frame = itr->second->frame;
-        rdata = itr->second->rdata;
-        ack_received = itr->second->ack_received;
-        if(ack_received){ //message acked, remove from list
-          delete curr_frame;
-          delete rdata;
-          delete itr->second;
-          s_map.erase(itr);
-        } else{ //send the message
-           //sendto syscall, sets the client socket info before sending.
-          cliaddr.sin_family = AF_INET;
-          cliaddr.sin_port = rdata->port;
-          cliaddr.sin_addr = rdata->addr;
-          sendto(sock_fd, (char*) curr_frame, sizeof(sudp_frame),0,
-          (sockaddr*) &cliaddr, sizeof(sockaddr_in));
+        dest_data = itr->second->rdata;
+
+        dest_addr.sin_family = AF_INET;
+        dest_addr.sin_port = dest_data->port;
+        dest_addr.sin_addr = dest_data->addr;
+
+        //sendto
+        sendto(sock_fd, (char*) curr_frame, sizeof(sudp_frame),0,
+        (sockaddr*) &dest_addr, sizeof(sockaddr_in));
         }
       }
+      m_lock.unlock();
     }
   }
-}
+
 
 void SecureUDP::receiver(){
+  sockaddr_in src_addr;
+  socklen_t sz = sizeof(src_addr);
+
   while(true){
     sudp_frame *curr_frame = new sudp_frame();
     //recvfrom syscall
     recvfrom(sock_fd,(char*) curr_frame, sizeof(sudp_frame),0,
-    (sockaddr *) &servaddr,(unsigned int*)sizeof(sockaddr_in));
+    (sockaddr*)&src_addr,&sz);
 
+    std::cout << "\nMessage Type: " << (int) curr_frame->type << " Message sn: " << (unsigned int) curr_frame->sn << std::endl;
     if(curr_frame->type){ //ack
-      //lock?
-      if(s_map.count(curr_frame->sn)){ //sn matches with one key from s_map
-        s_map[curr_frame->sn]->ack_received = true;
+      m_lock.lock();
+      if(s_map.count(curr_frame->sn)){ //sn matches with one key from s_map,remove element
+        delete s_map[curr_frame->sn]->frame;
+        delete s_map[curr_frame->sn]->rdata;
+        delete s_map[curr_frame->sn];
+        s_map.erase(curr_frame->sn);
       }
-    } else { //send-receive type
-        struct sockaddr_in dest_addr;
+      m_lock.unlock();
+    } else { //send-receive type, return an ack.
         curr_frame->type = 1;
 
         //sendto syscall
+        std::cout << "Sending ack to IP: " << inet_ntoa(src_addr.sin_addr)
+         " and port: " <<  ntohs(src_addr.sin_port)  << std::endl;
         sendto(sock_fd, (char*) curr_frame, sizeof(sudp_frame),0,
-        (sockaddr*) &servaddr, sizeof(sockaddr_in));
+        (sockaddr*) &src_addr, sizeof(sockaddr_in));
 
         std::unique_lock<std::mutex> rq_lock(rq_m);
         //std::cout << "Lock aquired by receiver thread." << std::endl;

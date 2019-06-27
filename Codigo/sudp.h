@@ -8,7 +8,6 @@
 #include <unistd.h>
 #include <cstdio>
 
-//#include <thread>
 #include <mutex>
 #include <condition_variable>
 #include <map>
@@ -43,7 +42,6 @@ struct sudp_rdata{
 struct smap_value{
   sudp_frame *frame;
   sudp_rdata *rdata;
-  bool ack_received;
 };
 
 
@@ -53,31 +51,32 @@ struct smap_value{
 */
 class SecureUDP{
   public:
-  SecureUDP(int,int);
-  ~SecureUDP();
-  void sendTo(char*,char*,uint16_t);
-  void receive(char*);
+    SecureUDP(int,int);
+    ~SecureUDP();
+    void sendTo(char*,char*,uint16_t);
+    void receive(char*);
 
 
   private:
-  struct sockaddr_in servaddr, cliaddr;
-  int sock_fd;
-  int wait_time;
-  uint16_t port;
-  uint16_t sn;
+    sockaddr_in servaddr;
+    int sock_fd;
+    int wait_time;
+    uint16_t port;
+    uint16_t sn;
 
-  std::mutex rq_m; //receive queue mutex
-  //std::unique_lock<std::mutex> rq_lock(rq_m, std::defer_lock);
-  std::condition_variable rq_cv; //receive queue cv
-  std::queue<sudp_frame*> r_queue; //received queue
-  std::map<uint16_t,smap_value*> s_map; //send map
+    std::mutex rq_m; //receive queue mutex
+    std::mutex m_lock; //map mutex
+    //std::unique_lock<std::mutex> rq_lock(rq_m, std::defer_lock);
+    std::condition_variable rq_cv; //receive queue cv
+    std::queue<sudp_frame*> r_queue; //received queue
+    std::map<uint16_t,smap_value*> s_map; //send map
 
-  void setSocket();
+    void setSocket();
 
-  //Thread routines.
-  void sender();
-  void receiver();
-  void start();
+    //Thread routines.
+    void sender();
+    void receiver();
+    void start();
 };
 
 #endif
