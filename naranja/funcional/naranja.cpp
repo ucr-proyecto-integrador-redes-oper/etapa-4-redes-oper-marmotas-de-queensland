@@ -7,43 +7,35 @@ Naranja::Naranja(int portNaranja,short portAzul,string pathcsv,char* ipDer,short
 
   this->ipDer = ipDer;
   this->portDer = portDer;
-
+  cout << "ip Derecha: " << this->ipDer << " puerto: " << portDer << endl;
   this->ipIzq = ipIzq;
   this->portIzq = portIzq;
-
-  //solo asi pude sacar la ip de mi pc
-  struct sockaddr_in sa;
-  char localIp[16];
-  cout << "Ingrese la Ip local : " << endl;
+  cout << "ip Izquierda: " << this->ipIzq << " puerto: " << portIzq << endl;
+  
+  //se pregunta por la ip de mi pc///////////////////////////////
+  string localIp;
+  cout << "Ingrese la Ip local invertida : " << endl;
   cin >> localIp;
-  this->miIp = inet_addr(localIp);//pasar de string a int
-  cout << "Int de la Ip: "<< localIp <<" es: " << this->miIp;
 
-  inicial.id = 0;
-  solicitud.id = 1;
-  complete.id = 2;
-  vacio.id = 3;
-  //line_count = count_Lines(pathcsv); //
+  this->miIp = inet_addr(localIp.c_str());//pasar de string a int
+  cout << "Int de la Ip: "<< localIp <<" es: " << this->miIp << endl;
+  //////////////////////////////////////////////////////////////
+  //cantidad de nodos en el grafo, para luego iniciar los bitmap
+  //count_Lines(pathcsv);
 
   //Iniciar socket para naranjas
-	//this->portNaranjas = new SecureUDP(portNaranja,0);
-
+  udpNaranjas = new UDP(portNaranja);
   //Iniciar socket para azules
-  //this->portAzul = new SecureUDP(portAzul,0);
-
-  client = new Client();
-  connectC(portNaranja);
-
+  udpAzules = new UDP(portAzul);
 }
 
 Naranja::~Naranja(){
-  client->closeClient();
-  delete client;
-  // delete portNaranjas;
-  //delete portAzul;
+  delete udpNaranjas;
+  delete udpAzules;
 }
 
 //funcionamiento interno:
+//arreglar esto
 int Naranja::count_Lines(string &path){
 	ifstream csvFile;
 	csvFile.open(path.c_str());
@@ -53,13 +45,8 @@ int Naranja::count_Lines(string &path){
 	}
 
 	string line;
-	while(getline(csvFile, line)){
-		if(line.empty()){
-			continue;
-		}
-		else{
-			line_count++;
-		}
+	while(getline(csvFile, line, '\n')){
+		line_count++;
 	}
   csvFile.close(); //
 	return line_count;
@@ -78,7 +65,7 @@ void Naranja::iniciar(){
 
 //este metodo debe ser ejecutado con un thread para verificar el timeout
 int Naranja::timeout(){
-
+  return 0;
 }
 
 //verifica si mi ip es la mas baja y retorna un valor. 0 si no, 1 si si
@@ -113,18 +100,25 @@ void Naranja::verificarPaquetes(){
   //recibir paquetes
   while(id){
     //recibir paquete, se recibe con el tipo de paquete mas grande posible
-    cout << "Esperando por paquete" << endl;
-    client->readFromServer((char*)&solicitud,sizeof(solicitud));
-    //se saca el id del paquete
-    memcpy((char*)&id,(char*)&solicitud.id,sizeof(char));
-
+    if(token==0){ // si no tengo el token
+    	cout << "Esperando por paquete" << endl;
+    	this->udpNaranjas->receive((char*)&solicitud,sizeof(solicitud));
+    	//se saca el id del paquete
+    	memcpy((char*)&id,(char*)&solicitud.id,sizeof(char));
+    }else{//si tengo el token
+ 	id = 3;
+    }
     switch (id) {
       case 1://recibo solicitud
-        cout << "Se recibio una solicitud de nodo naranja." << endl;
+        cout << "Se recibio una solicitud de otro nodo naranja." << endl;
+	cout << solicitud.id << endl;
+	cout << solicitud.idNodo << endl;
+	cout << solicitud.ipAzul << endl;
+	cout << solicitud.portAzul << endl;
         //guardar solicitud recibida
         //ocuparNodoGrafo();
         //enviar solicitud al sig
-        this->client->writeToServer((char*)&solicitud,sizeof(solicitud));
+        this->udpNaranjas->sendTo((char*)&solicitud,sizeof(solicitud),ipDer,portDer);
         break;
 
       case 2://recibo complete
@@ -142,8 +136,9 @@ void Naranja::verificarPaquetes(){
         cout << "Se recibio token vacio" << endl;
 
         if(this->solicitudes.empty()){//si no hay solicitudes
-          cout << "No hay solicitudes de nodo azul." << endl;
+          cout << "No hay solicitudes de nodo azul, enviando token vacio." << endl;
           this->enviarTokenVacio();//envie token vacio
+	  this->token = 0 ;
           break;//se hace el break dentro del if para que pase al case 4
           //en caso de que hayan solicitudes
         }
@@ -156,6 +151,7 @@ void Naranja::verificarPaquetes(){
 //atender una solicitud
           enviarSolicitud();
         }
+        cout << "Enviando token vacio." << endl;
         this->enviarTokenVacio();//envie token vacio luego de realizar una solicitud
 
         break;
@@ -168,45 +164,48 @@ void Naranja::verificarPaquetes(){
 }
 
 //paquetes:
+//no tocar esto
 void Naranja::enviarInicial(){
   //enviar inicial
   memcpy((char*)&inicial.ip,(char*)&this->miIp,4);
-
-  this->client->writeToServer((char*)&inicial,sizeof(inicial));
+  inicial.id = 0;
   //enviar por der e izq
-  //portNaranjas->sendTo((char*)&inicial,ipDer,portDer);
-  //portNaranjas->sendTo((char*)&inicial,ipIzq,portIzq);
-
+  this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipDer,portDer);
+  this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipIzq,portIzq);
   int otroIp = 0;
+  bool miIp = false;
   int misPaquetes = 0;
   bool yaEsta = false;
-
   //recibir paquetes hasta que haya llegado mis otros 2
   while(misPaquetes < 2){
-    client->readFromServer((char*)&inicial,sizeof(inicial));
+    this->udpNaranjas->receive((char*)&inicial,sizeof(inicial));
     memcpy((char*)&otroIp,(char*)&inicial.ip,4);
-
-    if(otroIp == this->miIp)
+    if(inicial.ip == this->miIp){
+      cout << "Llego un pack mio" << endl;
+      miIp = true;
+      yaEsta = true;
       ++misPaquetes;
-
+    }
     for(int index = 0; index < ipsVecinos.size() && !yaEsta; ++index){
       //recibir paquetes y guardarlos(si ya los tengo solo los envio), y luego se envian
       //se reciben hasta que sean mis paquetes,
       if(ipsVecinos[index] == otroIp)
         yaEsta = true;
     }
-
     if(!yaEsta){
       ipsVecinos.push_back(otroIp);
       cout << "Agregando Ip: " << otroIp << endl;
     }
-
+    //cout << udpNaranjas->getPortClient() << " :port & ip: " << udpNaranjas->getIpClient() << endl;
+    if(strcmp(udpNaranjas->getIpClient(),this->ipIzq) == 0 && udpNaranjas->getPortClient()==this->portIzq && !miIp){
+	cout << "Enviando paquete a derecha" << endl;
+       this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipDer,portDer);
+    }else if(strcmp(udpNaranjas->getIpClient(),this->ipDer) == 0 && udpNaranjas->getPortClient()==this->portDer && !miIp){
+      cout << "Enviando paquete a izquierda" << endl;
+      this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipIzq,portIzq);
+    }    
     yaEsta = false;
-    /*
-    if(ip de donde recibi es izq envio der && misPaquetes < 2)
-    client->sendTo();
-    else envio izq
-    */
+    miIp = false;
   }
 }
 
@@ -214,22 +213,26 @@ void Naranja::enviarSolicitud(){
   //enviar solicitud
   //copia la solicitud en struct
   memcpy((char*)&solicitud,(char*)&solicitudes.front(),sizeof(solicitud));
+  solicitud.id = 1;
+  
   this->solicitudes.pop();//saco la solicitud de la cola
   //se envia solicitud al nodo naranja derecho
-  this->client->writeToServer((char*)&solicitud,sizeof(solicitud));
+  this->udpNaranjas->sendTo((char*)&solicitud,sizeof(solicitud),ipDer,portDer);
   //falta recibirla se recibe del izq.
-  this->client->readFromServer((char*)&solicitud,sizeof(solicitud));
+  this->udpNaranjas->receive((char*)&solicitud,sizeof(solicitud));
 }
 
 void Naranja::enviarTokenVacio(){
   //enviar vacio
-  this->client->writeToServer((char*)&vacio,sizeof(vacio));
+  vacio.id = 3;
+  this->udpNaranjas->sendTo((char*)&vacio,sizeof(vacio),ipDer,portDer);
   this->token = 0;
 }
 
 void Naranja::enviarComplete(){
   //enviar complete
-  this->client->writeToServer((char*)&complete,sizeof(pack_complete));
+  complete.id = 2;
+  this->udpNaranjas->sendTo((char*)&complete,sizeof(pack_complete),ipDer,portDer);
 }
 
 //Cosas de azules:

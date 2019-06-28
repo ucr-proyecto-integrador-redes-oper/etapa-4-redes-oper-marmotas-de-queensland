@@ -16,9 +16,9 @@ struct pack_inicial{
 */
 struct pack_solicitud{
 	char id; //id 1
-	short idNodo; //id del nodo(grafo) que se solicita
+	uint16_t idNodo; //id del nodo(grafo) que se solicita
 	uint32_t ipAzul; //ip del nodo azul solicitante
-	short portAzul; //port del nodo azul solicitante
+	uint16_t portAzul; //port del nodo azul solicitante
 };
 
 /*

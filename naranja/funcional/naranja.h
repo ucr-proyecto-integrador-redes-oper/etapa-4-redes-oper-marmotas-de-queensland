@@ -16,10 +16,10 @@
 #include <fstream>
 
 //////////
-#include "client.h"
-#include "server.h"
+#include "udp.h"
 #include "bitmap.h"
 ////////////
+
 using namespace std;
 #ifndef NARANJA_H
 #define NARANJA_H
@@ -42,11 +42,9 @@ private:
 
 	uint32_t miIp;
 
-	//falta 2 ports mios para naranjas y azules
-	//SecureUDP* portAzul;
-	//SecureUDP* portNaranjas;
-	Server* server;
-	Client* client;
+	//ports para naranjas y azules
+	UDP* udpNaranjas;
+	UDP* udpAzules;
 
 	//paquetes
 	struct pack_inicial inicial;
@@ -90,10 +88,6 @@ public:
 	void enviarTokenVacio(); //envia un paquete indicando que el token esta libre
 	void enviarComplete();//envia pack indicando complete
 	void enviarCompleteAzules();//envia un pack a los azules para que empiecen
-
-	void connectC(int port){
-		client->connectClient("",port);
-	}
 };
 
 
