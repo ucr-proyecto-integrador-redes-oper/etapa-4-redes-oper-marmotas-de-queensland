@@ -13,7 +13,7 @@
 #include <map>
 #include <queue>
 
-#define PAYLOAD_CAP 1024
+#define PAYLOAD_CAP 1035
 #define SN_CAP 0xFFFF
 
 /*
