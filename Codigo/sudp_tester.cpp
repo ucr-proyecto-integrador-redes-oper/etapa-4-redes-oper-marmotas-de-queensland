@@ -3,8 +3,8 @@
 #include <mutex>
 #include <string>
 #include <cstring>
+#include <sstream>
 #include <functional>
-
 #include "sudp.h"
 #include "frames.h"
 
@@ -12,25 +12,31 @@
 
 
 std::mutex c_lock;
-SecureUDP sudp(9999,1000);
+SecureUDP sudp(8888,1000);
 
 void writer(){
-  std::string msg = " ";
+  std::stringstream msg;
+  std::string tmp;
   std::string ip = " ";
   std::string port = " ";
-  while(std::strcmp(msg.c_str(),"exit")){
+  int msg_size;
+  while(std::strcmp(msg.str().c_str(  ),"exit")){
     std::cout << "Digite el mensaje: ";
-    std::getline(std::cin,msg);
+    std::getline(std::cin,tmp);
+    msg.str(tmp);
     std::cout << "\nDigite la IP: ";
     std::getline(std::cin,ip);
     std::cout << "\nDigite el puerto: ";
     std::getline(std::cin,port);
-    sudp.sendTo(&msg[0],&ip[0],std::stoi(port));
+    msg.seekg(0,std::ios::end);
+    msg_size = msg.tellg();
+    std::cout << "Sending size " << msg_size << std::endl;
+    sudp.sendTo(&msg.str()[0],msg_size,&ip[0],std::stoi(port));
   }
 }
 
 void reader(){
-  char buffer[0xFFFF];
+  char buffer[1035];
   while(true){
     sudp.receive(buffer);
     std::cout << "\nEn Reader: Mensaje leido: ";

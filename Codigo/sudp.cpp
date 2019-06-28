@@ -31,7 +31,7 @@ SecureUDP::~SecureUDP(){
 /*
   Encapsultates the data in a SecureUPD header and adds it to the send map.
 */
-void SecureUDP::sendTo(char* data, char* r_ip, uint16_t r_port){
+void SecureUDP::sendTo(char* data, size_t sz,char* r_ip, uint16_t r_port){
   sudp_frame* curr_frame = new sudp_frame();
   sudp_rdata* receiver_data = new sudp_rdata();
   smap_value* val = new smap_value();
@@ -43,11 +43,13 @@ void SecureUDP::sendTo(char* data, char* r_ip, uint16_t r_port){
   //sets de sudp header and copies the data.
   curr_frame->type = 0;
   curr_frame->sn = sn;
-  memcpy((char*) curr_frame->payload, data , PAYLOAD_CAP);
+  memcpy((char*) curr_frame->payload, data ,sz);
 
   //sets the map value and inserts it using the sn as key.
   val->frame = curr_frame;
   val->rdata = receiver_data;
+  val->msg_size = sz + 3;
+  std::cout << "Message size: " << sz + 3 << std::endl;
   s_map[sn] = val;
 
   sn++;
@@ -127,7 +129,7 @@ void SecureUDP::sender(){
         dest_addr.sin_addr = dest_data->addr;
 
         //sendto
-        sendto(sock_fd, (char*) curr_frame, sizeof(sudp_frame),0,
+        sendto(sock_fd, (char*) curr_frame, itr->second->msg_size,0,
         (sockaddr*) &dest_addr, sizeof(sockaddr_in));
         }
       }
@@ -161,7 +163,7 @@ void SecureUDP::receiver(){
 
         //sendto syscall
         std::cout << "Sending ack to IP: " << inet_ntoa(src_addr.sin_addr) << " and port: " <<  ntohs(src_addr.sin_port)  << std::endl;
-        sendto(sock_fd, (char*) curr_frame, sizeof(sudp_frame),0,
+        sendto(sock_fd, (char*) curr_frame, 3,0,
         (sockaddr*) &src_addr, sizeof(sockaddr_in));
 
         std::unique_lock<std::mutex> rq_lock(rq_m);

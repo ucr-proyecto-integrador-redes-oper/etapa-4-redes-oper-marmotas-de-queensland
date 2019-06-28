@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <cstdio>
+#include <stdio.h>
 
 #include <mutex>
 #include <condition_variable>
@@ -21,34 +22,35 @@
   Types: 0 ---> sender/receiver
          1 ---> ack
 */
-#pragma pack(push,1)
+//#pragma pack(push,1)
 struct sudp_frame{
   uint8_t type; //1 byte type
   uint16_t sn; // 2 bytes sn
-  char payload[PAYLOAD_CAP]; //1kb payload
-};
-#pragma pack(pop)
+  char payload[PAYLOAD_CAP]; //1kb payload + blue header
+}__attribute__((packed));
+//#pragma pack(pop)
 
 /*
   Struct for the receiver data.
   Saves the receiver IP and port.
 */
-#pragma pack(push,1)
+//#pragma pack(push,1)
 struct sudp_rdata{
   in_addr addr;
   uint16_t port;
-};
-#pragma pack(pop)
+}__attribute__((packed));
+//#pragma pack(pop)
 
 /*
   Struct for the map value associated with a sn key.
 */
-#pragma pack(push,1)
+//#pragma pack(push,1)
 struct smap_value{
   sudp_frame *frame;
   sudp_rdata *rdata;
-};
-#pragma pack(pop)
+  size_t msg_size;
+}__attribute__((packed));
+//#pragma pack(pop)
 
 
 /*
@@ -59,7 +61,7 @@ class SecureUDP{
   public:
     SecureUDP(int,int);
     ~SecureUDP();
-    void sendTo(char*,char*,uint16_t);
+    void sendTo(char*,size_t,char*,uint16_t);
     void receive(char*);
 
 
