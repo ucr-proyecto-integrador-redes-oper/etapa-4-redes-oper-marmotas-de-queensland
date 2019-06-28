@@ -160,8 +160,7 @@ void SecureUDP::receiver(){
         curr_frame->type = 1;
 
         //sendto syscall
-        std::cout << "Sending ack to IP: " << inet_ntoa(src_addr.sin_addr)
-         " and port: " <<  ntohs(src_addr.sin_port)  << std::endl;
+        std::cout << "Sending ack to IP: " << inet_ntoa(src_addr.sin_addr) << " and port: " <<  ntohs(src_addr.sin_port)  << std::endl;
         sendto(sock_fd, (char*) curr_frame, sizeof(sudp_frame),0,
         (sockaddr*) &src_addr, sizeof(sockaddr_in));
 

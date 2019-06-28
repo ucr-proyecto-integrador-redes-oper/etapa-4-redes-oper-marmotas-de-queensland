@@ -21,28 +21,34 @@
   Types: 0 ---> sender/receiver
          1 ---> ack
 */
+#pragma pack(push,1)
 struct sudp_frame{
   uint8_t type; //1 byte type
   uint16_t sn; // 2 bytes sn
   char payload[PAYLOAD_CAP]; //1kb payload
 };
+#pragma pack(pop)
 
 /*
   Struct for the receiver data.
   Saves the receiver IP and port.
 */
+#pragma pack(push,1)
 struct sudp_rdata{
   in_addr addr;
   uint16_t port;
 };
+#pragma pack(pop)
 
 /*
   Struct for the map value associated with a sn key.
 */
+#pragma pack(push,1)
 struct smap_value{
   sudp_frame *frame;
   sudp_rdata *rdata;
 };
+#pragma pack(pop)
 
 
 /*
