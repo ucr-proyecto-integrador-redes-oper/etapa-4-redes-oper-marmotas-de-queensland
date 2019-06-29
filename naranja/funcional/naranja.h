@@ -65,6 +65,7 @@ private:
 	//bitmap para saber cuales son mis azules.
 	BitMap* misAzules;
 	//mapita (nodoAzul,(ip, port))
+	bool grafoCompleto;
 	map<uint16_t,pair <uint32_t, uint16_t>> mapAzules;
 
 public:
@@ -79,15 +80,20 @@ public:
 	void crearToken(); //crea el token, modificando el atributo token
 	void verificarPaquetes(); //contiene switch con los diferentes id de packs
 
-	//para el sig metodo ocupo algo para almacenar los nodos ocupados
-	void ocuparNodoGrafo(); //al recibir una solicitud, la escribo en este metodo
-
 	//paquetes:
 	void enviarInicial(); //envia un paquete inicial para saber la ip
 	void enviarSolicitud(); //envia solicitud al vecino naranja derecho
 	void enviarTokenVacio(); //envia un paquete indicando que el token esta libre
 	void enviarComplete();//envia pack indicando complete
-	void enviarCompleteAzules();//envia un pack a los azules para que empiecen
+	//Cosas Azules
+	void recibirSolicitudAzul(); // Recibe solicitud de un azul para unirse 14
+	void enviarPosicion();//Envia al azul su posición en el grafo 15
+	void enviarPosconVecino();//Envia al azul su posición en grafo y una lista de vecinos 16
+	//para el sig metodo ocupo algo para almacenar los nodos ocupados
+	void ocuparNodoGrafo(); //al recibir una solicitud, la escribo en este metodo
+	void enviarCompleteAzules();//envia un pack a los azules para que empiecen 17
+
+
 };
 
 

@@ -11,7 +11,7 @@ Naranja::Naranja(int portNaranja,short portAzul,string pathcsv,char* ipDer,short
   this->ipIzq = ipIzq;
   this->portIzq = portIzq;
   cout << "ip Izquierda: " << this->ipIzq << " puerto: " << portIzq << endl;
-  
+
   //se pregunta por la ip de mi pc///////////////////////////////
   string localIp;
   cout << "Ingrese la Ip local invertida : " << endl;
@@ -203,7 +203,7 @@ void Naranja::enviarInicial(){
     }else if(strcmp(udpNaranjas->getIpClient(),this->ipDer) == 0 && udpNaranjas->getPortClient()==this->portDer && !miIp){
       cout << "Enviando paquete a izquierda" << endl;
       this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipIzq,portIzq);
-    }    
+    }
     yaEsta = false;
     miIp = false;
   }
@@ -214,7 +214,7 @@ void Naranja::enviarSolicitud(){
   //copia la solicitud en struct
   memcpy((char*)&solicitud,(char*)&solicitudes.front(),sizeof(solicitud));
   solicitud.id = 1;
-  
+
   this->solicitudes.pop();//saco la solicitud de la cola
   //se envia solicitud al nodo naranja derecho
   this->udpNaranjas->sendTo((char*)&solicitud,sizeof(solicitud),ipDer,portDer);
@@ -236,12 +236,69 @@ void Naranja::enviarComplete(){
 }
 
 //Cosas de azules:
-void Naranja::enviarCompleteAzules(){
-
+/*
+Efecto: Recibe un mensaje de un azul por Secure udp y lo encola
+Requiere: Cola de solicitudes, socket abierto a solictudes
+Modifica: Cola de solicitudes
+*/
+void recibirSolicitudAzul(){
+  //Si el token ring está listo
+    //Escucha por Azules
+    //Pasa a cola al llegar algo
 }
 
+/*
+Efecto: Envia al azul su posición en el grafo. Numero paquete = 15
+Requiere: Número de nodo que se asignó
+Modifica: El numero en grafo del azul al que se envía el paquete
+*/
+void enviarPosicion(){
+  //Recibe parametros para crear el paquete posición
+  //envia paquete al azul
+}
+
+/*
+Efecto: Envia al azul su posición en grafo y una lista de vecinos. Numero paquete = 16
+Requiere: Número de nodo que se asignó, lista de vecinos
+Modifica: El numero en grafo del azul al que se le envía el paquete y sus lista de vecinos
+*/
+void enviarPosConVecino(){
+  //Recibe parametros para crear el paquete posición.
+  //Itera por una lista de vecinos, agregandolos al paquetes
+  //Envia Paquete al azul
+}
+
+/*
+Efecto: Asigna un número en el grafo a un nodo azul.
+Requiere: Numero nodo de petición, mapa de bits de nodos azules,
+Modifica: Mapa de bits de nodos ocupaos local y en red. Asigna un numero a un  nodo azul.
+*/
 //para el sig metodo ocupo algo para almacenar los nodos ocupados
 //al recibir una solicitud, la escribo en este metodo
 void Naranja::ocuparNodoGrafo(){
+  //Desencola de lista de solicitudes
+  //Asuma que el paquete es rechazado
+  //Si el grafo está incompleto
+    //Se acepta solicitud
+    //Asigna en mapa de bits
+    //Envia paquete a los naranjas por el anillo
+    //Asigna variables para paquete
+  //Si mi paquete fue aceptado
+    //Si tengo ips de Vecinos
+      //Envie paquete 16(Posición+Vecinos)
+    //else
+      //Envie Paquete 15 (Posición)
+  //else
+    //envie rechazo
 
+}
+
+/*
+Efecto: Envia paquete indicando completitud del grafo. Numero paquete = 17
+Requiere: Lista de nodos azules del naranja
+Modifica: Los nodos azules se activan
+*/
+void Naranja::enviarCompleteAzules(){
+  //Para cada nodo azul de mi lista
+    //envio paquete de complete.
 }
