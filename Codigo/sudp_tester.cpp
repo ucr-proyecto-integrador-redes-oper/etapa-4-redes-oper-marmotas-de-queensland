@@ -36,7 +36,7 @@ void writer(){
 }
 
 void reader(){
-  char buffer[1035];
+  char buffer[1032];
   while(true){
     sudp.receive(buffer);
     std::cout << "\nEn Reader: Mensaje leido: ";

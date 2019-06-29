@@ -14,7 +14,7 @@
 #include <map>
 #include <queue>
 
-#define PAYLOAD_CAP 1035
+#define PAYLOAD_CAP 1032
 #define SN_CAP 0xFFFF
 
 /*
@@ -77,6 +77,7 @@ class SecureUDP{
     //std::unique_lock<std::mutex> rq_lock(rq_m, std::defer_lock);
     std::condition_variable rq_cv; //receive queue cv
     std::queue<sudp_frame*> r_queue; //received queue
+    std::queue<sudp_frame*> del_queue;
     std::map<uint16_t,smap_value*> s_map; //send map
 
     void setSocket();
