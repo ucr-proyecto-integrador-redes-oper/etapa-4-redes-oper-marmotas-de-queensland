@@ -1,16 +1,21 @@
 #include "naranja.h"
 Naranja::Naranja(int portNaranja,short portAzul,string pathcsv,char* ipDer,short portDer,char* ipIzq,short portIzq){
 
+  //Iniciar socket para naranjas
+  udpNaranjas = new UDP(portNaranja);
+  //Iniciar socket para azules
+  udpAzules = new UDP(portAzul);
+
   this->banderaSolicitud = 0;
   this->cantidadCompletos = 0;
   this->token = 0;
 
   this->ipDer = ipDer;
   this->portDer = portDer;
-  cout << "ip Derecha: " << this->ipDer << " puerto: " << portDer << endl;
+  //cout << "ip Derecha: " << this->ipDer << " puerto: " << portDer << endl;
   this->ipIzq = ipIzq;
   this->portIzq = portIzq;
-  cout << "ip Izquierda: " << this->ipIzq << " puerto: " << portIzq << endl;
+  //cout << "ip Izquierda: " << this->ipIzq << " puerto: " << portIzq << endl;
 
   //se pregunta por la ip de mi pc///////////////////////////////
   string localIp;
@@ -21,12 +26,14 @@ Naranja::Naranja(int portNaranja,short portAzul,string pathcsv,char* ipDer,short
   cout << "Int de la Ip: "<< localIp <<" es: " << this->miIp << endl;
   //////////////////////////////////////////////////////////////
   //cantidad de nodos en el grafo, para luego iniciar los bitmap
-  //count_Lines(pathcsv);
+  count_Lines(pathcsv);
+  cout << line_count << endl;
+  // cout << "Tamanio inicial: " << sizeof(pack_inicial) << endl;
+  // cout << "Tamanio solicitud: " << sizeof(pack_solicitud) << endl;
+  // cout << "Tamanio complete: " << sizeof(complete) << endl;
+  // cout << "Tamanio vacio: " << sizeof(vacio) << endl;
 
-  //Iniciar socket para naranjas
-  udpNaranjas = new UDP(portNaranja);
-  //Iniciar socket para azules
-  udpAzules = new UDP(portAzul);
+  // enviarInicial();
 }
 
 Naranja::~Naranja(){
@@ -37,15 +44,15 @@ Naranja::~Naranja(){
 //funcionamiento interno:
 //arreglar esto
 int Naranja::count_Lines(string &path){
-	ifstream csvFile;
-	csvFile.open(path.c_str());
+  line_count = 0;
+  ifstream csvFile;
+	csvFile.open(path.c_str(), ifstream::in);
 
 	if(!csvFile.is_open()){
 		exit(EXIT_FAILURE);
 	}
-
-	string line;
-	while(getline(csvFile, line, '\n')){
+	char line[100];
+	while(csvFile.getline(line,100,'\r') || csvFile.getline(line,100,'\n')){//esto esta asi porque es windows(\r), \n si es de linux
 		line_count++;
 	}
   csvFile.close(); //
@@ -106,15 +113,15 @@ void Naranja::verificarPaquetes(){
     	//se saca el id del paquete
     	memcpy((char*)&id,(char*)&solicitud.id,sizeof(char));
     }else{//si tengo el token
- 	id = 3;
+ 	    id = 3;
     }
     switch (id) {
       case 1://recibo solicitud
         cout << "Se recibio una solicitud de otro nodo naranja." << endl;
-	cout << solicitud.id << endl;
-	cout << solicitud.idNodo << endl;
-	cout << solicitud.ipAzul << endl;
-	cout << solicitud.portAzul << endl;
+      	cout << solicitud.id << endl;
+      	cout << solicitud.idNodo << endl;
+      	cout << solicitud.ipAzul << endl;
+      	cout << solicitud.portAzul << endl;
         //guardar solicitud recibida
         //ocuparNodoGrafo();
         //enviar solicitud al sig
@@ -148,7 +155,7 @@ void Naranja::verificarPaquetes(){
       case 4://cree el token y tengo solicitudes
         if(!this->solicitudes.empty()){
           cout << "Atendiendo solicitud de nodo azul." << endl;
-//atender una solicitud
+          //atender una solicitud
           enviarSolicitud();
         }
         cout << "Enviando token vacio." << endl;
@@ -164,13 +171,18 @@ void Naranja::verificarPaquetes(){
 }
 
 //paquetes:
-//no tocar esto
+//arreglar bug
 void Naranja::enviarInicial(){
   //enviar inicial
-  memcpy((char*)&inicial.ip,(char*)&this->miIp,4);
-  inicial.id = 0;
+  queue<pack_inicial> paquetesIniciales;
+  char id = '0';
+  inicial.ip = this->miIp;
+  inicial.id = (char)0;
+  memcpy((char*)&inicial.id,&id,1);
   //enviar por der e izq
+  //cout << "Enviando: " << inicial.ip << " id: " << inicial.id << " a derecha: "<<  portDer <<endl;
   this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipDer,portDer);
+  //cout << "Enviando: " <<inicial.ip << " id: " << inicial.id << " a izquierda: "<<  portIzq <<endl;
   this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipIzq,portIzq);
   int otroIp = 0;
   bool miIp = false;
@@ -180,8 +192,9 @@ void Naranja::enviarInicial(){
   while(misPaquetes < 2){
     this->udpNaranjas->receive((char*)&inicial,sizeof(inicial));
     memcpy((char*)&otroIp,(char*)&inicial.ip,4);
+    //cout << "Se recibio id: " << inicial.id << "con ip: " << inicial.ip << endl;
     if(inicial.ip == this->miIp){
-      cout << "Llego un pack mio" << endl;
+      //cout << "Llego un pack mio" << endl;
       miIp = true;
       yaEsta = true;
       ++misPaquetes;
@@ -194,19 +207,22 @@ void Naranja::enviarInicial(){
     }
     if(!yaEsta){
       ipsVecinos.push_back(otroIp);
-      cout << "Agregando Ip: " << otroIp << endl;
+      //cout << "Agregando Ip: " << otroIp << endl;
     }
     //cout << udpNaranjas->getPortClient() << " :port & ip: " << udpNaranjas->getIpClient() << endl;
     if(strcmp(udpNaranjas->getIpClient(),this->ipIzq) == 0 && udpNaranjas->getPortClient()==this->portIzq && !miIp){
-	cout << "Enviando paquete a derecha" << endl;
-       this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipDer,portDer);
+	    //cout << "Enviando paquete a derecha" << endl;
+      this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipDer,portDer);
     }else if(strcmp(udpNaranjas->getIpClient(),this->ipDer) == 0 && udpNaranjas->getPortClient()==this->portDer && !miIp){
-      cout << "Enviando paquete a izquierda" << endl;
+      //cout << "Enviando paquete a izquierda" << endl;
       this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipIzq,portIzq);
     }
     yaEsta = false;
     miIp = false;
   }
+  // for(int i = 0 ; i < ipsVecinos.size();++i)
+  //   cout << ipsVecinos[i] << endl;
+  cout << "Finalizo la fase inicial." << endl;
 }
 
 void Naranja::enviarSolicitud(){
