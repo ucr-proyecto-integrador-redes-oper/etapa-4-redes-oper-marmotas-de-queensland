@@ -10,6 +10,7 @@
 #include <stdio.h>
 
 #include <mutex>
+#include <utility>
 #include <condition_variable>
 #include <map>
 #include <queue>
@@ -54,16 +55,16 @@ struct smap_value{
 
 
 /*
-  Class for a semi-reliable UDP communication.
-  args: int port, int wait_time(ms)
+*  Class for a semi-reliable UDP communication. It guarantees message arrival but not
+*  the order in which the message arrives.
 */
 class SecureUDP{
   public:
-    SecureUDP(int,int);
-    SecureUDP(int);
+    SecureUDP(uint16_t,uint32_t);
+    SecureUDP(uint32_t);
     ~SecureUDP();
     void sendTo(char*,size_t,char*,uint16_t);
-    void receive(char*);
+    std::pair<char*,uint16_t> receive(char*);
     uint16_t getPort();
 
 
@@ -76,13 +77,11 @@ class SecureUDP{
 
     std::mutex rq_m; //receive queue mutex
     std::mutex m_lock; //map mutex
-    //std::unique_lock<std::mutex> rq_lock(rq_m, std::defer_lock);
     std::condition_variable rq_cv; //receive queue cv
-    std::queue<sudp_frame*> r_queue; //received queue
-    std::queue<sudp_frame*> del_queue;
+    std::queue<std::pair<sudp_frame*,sudp_rdata>> r_queue; //received queue
     std::map<uint16_t,smap_value*> s_map; //send map
 
-    void setSocket(int);
+    void setSocket(uint16_t);
     void setSocket();
 
     //Thread routines.

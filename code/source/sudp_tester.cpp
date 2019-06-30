@@ -10,8 +10,6 @@
 
 
 
-
-std::mutex c_lock;
 SecureUDP sudp(8888,1000);
 
 void writer(){
@@ -37,10 +35,14 @@ void writer(){
 
 void reader(){
   char buffer[1032];
+  char* ip;
+  uint16_t port;
+  std::pair<char*,uint16_t> sender_data;
   while(true){
-    sudp.receive(buffer);
+    sender_data = sudp.receive(buffer);
     std::cout << "\nEn Reader: Mensaje leido: ";
     std::cout << buffer << std::endl;
+    std::cout << "Desde IP,Puerto: " << sender_data.first << "," << sender_data.second << std::endl;
   }
 }
 

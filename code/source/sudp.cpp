@@ -9,10 +9,13 @@
 
 
 /*
-  Constructor for the SecureUDP class
-  args: Specific port to bind and a wait time in ms.
+*  Constructor for the SecureUDP class that receives a specific port to bind
+*  and a wait time in ms for the sender thread. It's the user's responsability to
+*  send a valid port and wait time numbers.
+*  args: uint16_t port and uint32_t wait time in ms.
+*  ret: --
 */
-SecureUDP::SecureUDP(int port,int wait_time){
+SecureUDP::SecureUDP(uint16_t port,uint32_t wait_time){
   this->port = port;
   setSocket(port);
   sn = rand() % SN_CAP; //start sn with random number [0,2^16-1]
@@ -21,10 +24,13 @@ SecureUDP::SecureUDP(int port,int wait_time){
 }
 
 /*
-  Constructor for the SecureUDP class.
-  args: Wait time in ms, port is assigned automatically.
+*  Constructor for the SecureUDP class that receives a wait time in ms. Since
+*  no port is specified the OS will search for any available port to bind.
+*  It's the user's responsability to send a valid wait time as input.
+*  args: Wait time in ms, port is assigned automatically.
+*  ret: --
 */
-SecureUDP::SecureUDP(int wait_time){
+SecureUDP::SecureUDP(uint32_t wait_time){
   setSocket();
   sn = rand() % SN_CAP; //start sn with random number [0,2^16-1]
   this->wait_time = wait_time;
@@ -41,7 +47,13 @@ SecureUDP::~SecureUDP(){
 
 
 /*
-  Encapsultates the data in a SecureUPD header and adds it to the send map.
+* Encapsulates the data in a SecureUPD header and adds it to the send map.
+* The data has a cap of 1032 bytes.
+* args: char* with the data to send.
+*       size_t size of the data about to send.
+*       char* with the receiver IP address.
+*       uint16_t with the receiver port.
+* ret: --
 */
 void SecureUDP::sendTo(char* data, size_t sz,char* r_ip, uint16_t r_port){
   sudp_frame* curr_frame = new sudp_frame();
@@ -68,51 +80,55 @@ void SecureUDP::sendTo(char* data, size_t sz,char* r_ip, uint16_t r_port){
   sn = sn % SN_CAP;
 }
 
+/*
+* Returns the port binded to the SecureUDP instance.
+* args: --
+* ret: uint16_t with the port number.
+*/
 uint16_t SecureUDP::getPort(){
   return port;
 }
 
 /*
-
-
+* The receive function copies the memory into the buffer passed as parameter.
+* Buffer size has a cap of 1032 bytes.
+* args: char* where the sent data will be copied.
+* ret: std::pair<char*,uint16_t> with the IP and port of the sender.
 */
-void SecureUDP::receive(char* buffer){
-  sudp_frame *curr_frame;
-  bool empty = false;
+std::pair<char*,uint16_t> SecureUDP::receive(char* buffer){
+  std::pair<sudp_frame*,sudp_rdata> frame_info;
 
   //caller waits until the queue isn't empty
   std::unique_lock<std::mutex> rq_lock(rq_m);
   //std::cout << "Lock aquired by receive caller." << std::endl;
 
   //std::cout << "Waiting on signal from receiver thread." << std::endl;
-  rq_cv.wait(rq_lock,[&](){return !r_queue.size() <= 1;});
+  rq_cv.wait(rq_lock,[&](){return !r_queue.empty();});
   //std::cout << "Siganl received." << std::endl;
-  curr_frame = r_queue.front();
+  frame_info = r_queue.front();
   r_queue.pop();
   //std::cout << "Queue operations working." << std::endl;
 
+  //sets the return values
+  char* sender_ip = inet_ntoa(frame_info.second.addr);
+  uint16_t sender_port = frame_info.second.port;
+
   //copies the payload.
-  memcpy((char*) buffer, (char*) curr_frame->payload,PAYLOAD_CAP);
-  delete curr_frame;
+  memcpy((char*) buffer, (char*) frame_info.first->payload,PAYLOAD_CAP);
+  delete frame_info.first;
+  return std::make_pair(sender_ip,sender_port);
 }
-
-
-
-
-
-
-
-
-
-
-
 
 /////////////////////////////////Private functions//////////////////////////////////////////
 
 /*
-*
+* setSocket receives a port as parameter and binds the socket to the specified port.
+* If the socket or bind functions fail the program exits. It's the user's responsability
+* to send a valid port number.
+* agrs: uint16_t with the port to bind.
+* ret: --
 */
-void SecureUDP::setSocket(int port){
+void SecureUDP::setSocket(uint16_t port){
   // Creating socket file descriptor , UDP
   if ( (sock_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
     perror("socket creation failed");
@@ -133,7 +149,9 @@ void SecureUDP::setSocket(int port){
 }
 
 /*
-*
+* setSocket instantiates and binds the socket to any available port on the system.
+* args: --
+* ret: --
 */
 void SecureUDP::setSocket(){
   // Creating socket file descriptor , UDP
@@ -159,6 +177,14 @@ void SecureUDP::setSocket(){
   port = ntohs(addr.sin_port);
 }
 
+
+/*
+* Function for the sender thread. The thread will loop and try to send
+* the messages in map evey wait_time in ms. Thread execution will stop when
+* the caller process finishes.
+* args: --
+* ret: --
+*/
 void SecureUDP::sender(){
   sudp_frame *curr_frame;
   sudp_rdata *dest_data;
@@ -189,7 +215,11 @@ void SecureUDP::sender(){
     }
   }
 
-
+/*
+* Function for the receiver thread.
+* args: --
+* ret: --
+*/
 void SecureUDP::receiver(){
   sockaddr_in src_addr;
   socklen_t sz = sizeof(src_addr);
@@ -200,7 +230,7 @@ void SecureUDP::receiver(){
     recvfrom(sock_fd,(char*) curr_frame, sizeof(sudp_frame),0,
     (sockaddr*)&src_addr,&sz);
 
-    std::cout << "\nMessage Type: " << (int) curr_frame->type << " Message sn: " << (unsigned int) curr_frame->sn << std::endl;
+    //std::cout << "\nMessage Type: " << (int) curr_frame->type << " Message sn: " << (unsigned int) curr_frame->sn << std::endl;
     if(curr_frame->type){ //ack
       m_lock.lock();
       if(s_map.count(curr_frame->sn)){ //sn matches with one key from s_map,remove element
@@ -214,14 +244,17 @@ void SecureUDP::receiver(){
         curr_frame->type = 1;
 
         //sendto syscall
-        std::cout << "Sending ack to IP: " << inet_ntoa(src_addr.sin_addr) << " and port: " <<  ntohs(src_addr.sin_port)  << std::endl;
+        //std::cout << "Sending ack to IP: " << inet_ntoa(src_addr.sin_addr) << " and port: " <<  ntohs(src_addr.sin_port)  << std::endl;
         sendto(sock_fd, (char*) curr_frame, 3,0,
         (sockaddr*) &src_addr, sizeof(sockaddr_in));
+        sudp_rdata sender_data;
+        sender_data.addr = src_addr.sin_addr;
+        sender_data.port = ntohs(src_addr.sin_port);
 
         std::unique_lock<std::mutex> rq_lock(rq_m);
         //std::cout << "Lock aquired by receiver thread." << std::endl;
 
-        r_queue.push(curr_frame);
+        r_queue.push(std::make_pair(curr_frame,sender_data));
         rq_lock.unlock();
         //std::cout << "Realeased mutex from receiver thread." << std::endl;
 
@@ -231,6 +264,12 @@ void SecureUDP::receiver(){
   }
 }
 
+/*
+* The start routine instiates the threads and detaches them from the parent
+* process. The threads execution stops when the caller process does.
+* args: --
+* ret: --
+*/
 void SecureUDP::start(){
   std::thread s(&SecureUDP::sender,this);
   std::thread r(&SecureUDP::receiver,this);
