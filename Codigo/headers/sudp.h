@@ -60,9 +60,11 @@ struct smap_value{
 class SecureUDP{
   public:
     SecureUDP(int,int);
+    SecureUDP(int);
     ~SecureUDP();
     void sendTo(char*,size_t,char*,uint16_t);
     void receive(char*);
+    uint16_t getPort();
 
 
   private:
@@ -80,6 +82,7 @@ class SecureUDP{
     std::queue<sudp_frame*> del_queue;
     std::map<uint16_t,smap_value*> s_map; //send map
 
+    void setSocket(int);
     void setSocket();
 
     //Thread routines.

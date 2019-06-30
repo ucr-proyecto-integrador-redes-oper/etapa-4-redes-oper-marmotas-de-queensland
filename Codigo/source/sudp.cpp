@@ -10,9 +10,21 @@
 
 /*
   Constructor for the SecureUDP class
+  args: Specific port to bind and a wait time in ms.
 */
 SecureUDP::SecureUDP(int port,int wait_time){
   this->port = port;
+  setSocket(port);
+  sn = rand() % SN_CAP; //start sn with random number [0,2^16-1]
+  this->wait_time = wait_time;
+  start();
+}
+
+/*
+  Constructor for the SecureUDP class.
+  args: Wait time in ms, port is assigned automatically.
+*/
+SecureUDP::SecureUDP(int wait_time){
   setSocket();
   sn = rand() % SN_CAP; //start sn with random number [0,2^16-1]
   this->wait_time = wait_time;
@@ -56,6 +68,10 @@ void SecureUDP::sendTo(char* data, size_t sz,char* r_ip, uint16_t r_port){
   sn = sn % SN_CAP;
 }
 
+uint16_t SecureUDP::getPort(){
+  return port;
+}
+
 /*
 
 
@@ -69,7 +85,7 @@ void SecureUDP::receive(char* buffer){
   //std::cout << "Lock aquired by receive caller." << std::endl;
 
   //std::cout << "Waiting on signal from receiver thread." << std::endl;
-  rq_cv.wait(rq_lock,[&](){return !r_queue.empty();});
+  rq_cv.wait(rq_lock,[&](){return !r_queue.size() <= 1;});
   //std::cout << "Siganl received." << std::endl;
   curr_frame = r_queue.front();
   r_queue.pop();
@@ -93,18 +109,54 @@ void SecureUDP::receive(char* buffer){
 
 /////////////////////////////////Private functions//////////////////////////////////////////
 
-void SecureUDP::setSocket(){
+/*
+*
+*/
+void SecureUDP::setSocket(int port){
   // Creating socket file descriptor , UDP
   if ( (sock_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
     perror("socket creation failed");
+    exit(EXIT_FAILURE);
   }
 
   memset(&servaddr, 0, sizeof(servaddr));
   servaddr.sin_family    = AF_INET; // IPv4
   servaddr.sin_addr.s_addr = INADDR_ANY;
   servaddr.sin_port = htons(port);
-  bind(sock_fd,(struct sockaddr*) &servaddr,sizeof(sockaddr_in));
 
+  //binds the socket
+  if ( bind(sock_fd, (sockaddr*) &servaddr,sizeof(sockaddr_in)) < 0 ){
+    perror("bind failed");
+    exit(EXIT_FAILURE);
+  }
+
+}
+
+/*
+*
+*/
+void SecureUDP::setSocket(){
+  // Creating socket file descriptor , UDP
+  if ( (sock_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
+    perror("socket creation failed");
+    exit(EXIT_FAILURE);
+  }
+
+  memset(&servaddr, 0, sizeof(servaddr));
+  servaddr.sin_family    = AF_INET; // IPv4
+  servaddr.sin_addr.s_addr = INADDR_ANY;
+  servaddr.sin_port = 0; //OS will search for a free port to bind.
+
+  //binds the socket
+  if ( bind(sock_fd, (sockaddr*) &servaddr,sizeof(sockaddr_in)) < 0 ){
+    perror("bind failed");
+    exit(EXIT_FAILURE);
+  }
+
+  sockaddr_in addr;
+  socklen_t socklen = sizeof(sockaddr_in);
+  getsockname(sock_fd,(sockaddr*) &addr,&socklen);
+  port = ntohs(addr.sin_port);
 }
 
 void SecureUDP::sender(){
