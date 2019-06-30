@@ -11,10 +11,10 @@
 #include <cstdio>
 #include <string.h>
 
-#define PAYLOAD_CAP 1024
+#define PAYLOADUDP_CAP 1024
 
-struct sudp_frame{
-  char payload[PAYLOAD_CAP]; //1kb payload
+struct udp_frame{
+  char payload[PAYLOADUDP_CAP]; //1kb payload
 };
 
 struct udp_ClieData{
@@ -34,7 +34,7 @@ class UDP{
     void receive(char*,int);
     uint16_t getPortClient();
     char* getIpClient();
-    
+
 
   private:
     struct udp_ClieData clientData;

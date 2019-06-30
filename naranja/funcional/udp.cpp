@@ -34,7 +34,7 @@ char* UDP::getIpClient(){
   Encapsultates the data in a SecureUPD header and adds it to the send map.
 */
 void UDP::sendTo(char* data,int size, char* ip, uint16_t port){
-  sudp_frame* curr_frame = new sudp_frame();
+  udp_frame* curr_frame = new udp_frame();
 
   sockaddr_in dest_addr;
   memset(&dest_addr, 0, sizeof(dest_addr));
@@ -43,13 +43,13 @@ void UDP::sendTo(char* data,int size, char* ip, uint16_t port){
   dest_addr.sin_port = htons(port);
   //dest_addr.sin_addr = ip;
   inet_aton(ip, (struct in_addr*) &dest_addr.sin_addr.s_addr);
-  
+
 
   //copies the data.
-  memcpy((char*) curr_frame->payload, data , PAYLOAD_CAP);
+  memcpy((char*) curr_frame->payload, data , PAYLOADUDP_CAP);
 
   //sendto
-  sendto(sock_fd, (char*) curr_frame, sizeof(sudp_frame),0,
+  sendto(sock_fd, (char*) curr_frame, sizeof(udp_frame),0,
   (sockaddr*) &dest_addr, sizeof(sockaddr_in));
 
   delete curr_frame;
@@ -64,7 +64,7 @@ void UDP::receive(char* buffer,int size){
    sockaddr_in src_addr;
    socklen_t sz = sizeof(src_addr);
 
-   sudp_frame *curr_frame = new sudp_frame();
+   udp_frame *curr_frame = new udp_frame();
 
    //recvfrom syscall
    recvfrom(sock_fd,(char*) curr_frame, sizeof(curr_frame),0,(sockaddr*)&src_addr,&sz);
