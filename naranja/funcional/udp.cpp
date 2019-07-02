@@ -46,6 +46,8 @@ void UDP::sendTo(char* data,int size, char* ip, uint16_t port){
   inet_aton(ip,&addr);
   dest_addr.sin_addr = addr;
 
+  cout << "ip: " << ip << endl;
+
   //copies the data.
   memcpy((char*) curr_frame->payload, data , PAYLOADUDP_CAP);
 
@@ -90,7 +92,7 @@ void UDP::setSocket(){
 
   memset(&servaddr, 0, sizeof(servaddr));
   servaddr.sin_family = AF_INET; // IPv4
-  servaddr.sin_addr.s_addr = htonl(INADDR_ANY);;
+  servaddr.sin_addr.s_addr = INADDR_ANY;
   servaddr.sin_port = htons(port);
   bind(sock_fd,(struct sockaddr*) &servaddr,sizeof(sockaddr_in));
 }

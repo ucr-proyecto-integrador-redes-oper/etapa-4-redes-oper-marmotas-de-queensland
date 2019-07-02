@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <string.h>
 
+using namespace std;
 #define PAYLOADUDP_CAP 1024
 
 struct udp_frame{
