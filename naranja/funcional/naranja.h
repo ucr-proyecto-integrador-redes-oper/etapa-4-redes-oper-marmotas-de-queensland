@@ -37,8 +37,8 @@ private:
 	char* ipDer;
 	short portDer;
 	//vecino izq
-	char* ipIzq;
-	short portIzq;
+	//char* ipIzq;
+	//short portIzq;
 
 	uint32_t miIp;
 
@@ -69,7 +69,7 @@ private:
 	map<uint16_t,pair <uint32_t, uint16_t>> mapAzules;
 
 public:
-	Naranja(int,short,string,char*,short,char*,short);
+	Naranja(int,short,string,char*,short);
 	~Naranja();
 
 	//funcionamiento interno:

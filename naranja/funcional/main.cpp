@@ -8,8 +8,8 @@ using namespace std;
 //g++ -o naranja *.cpp -std=c++11
 
 int main(int argc, char* argv[]){
-  if(argc < 8){
-    cout << "Usage: portNaranja, portAzul, pathcsv, ipDer, portDer, ipIzq, portIzq." << endl;
+  if(argc < 6){
+    cout << "Usage: portNaranja, portAzul, pathcsv, ipDer, portDer." << endl;
   }else{
     int portNaranja = atoi(argv[1]);
     int portAzul = atoi(argv[2]);
@@ -17,7 +17,11 @@ int main(int argc, char* argv[]){
     int portDer = atoi(argv[5]);
     char* ipIzq = argv[6];
     int portIzq = atoi(argv[7]); 
-    Naranja naranja(portNaranja,0,argv[3],ipDer,portDer,ipIzq,portIzq);
+    int a;
+    cout << "ingrese key" << endl;
+    //cin >> a;
+    Naranja naranja(portNaranja,0,argv[3],ipDer,portDer);
+    cin >> a;
     naranja.iniciar();
   }
 

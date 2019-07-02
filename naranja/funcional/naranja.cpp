@@ -1,5 +1,5 @@
 #include "naranja.h"
-Naranja::Naranja(int portNaranja,short portAzul,string pathcsv,char* ipDer,short portDer,char* ipIzq,short portIzq){
+Naranja::Naranja(int portNaranja,short portAzul,string pathcsv,char* ipDer,short portDer){
 
   //Iniciar socket para naranjas
   udpNaranjas = new UDP(portNaranja);
@@ -13,8 +13,9 @@ Naranja::Naranja(int portNaranja,short portAzul,string pathcsv,char* ipDer,short
   this->ipDer = ipDer;
   this->portDer = portDer;
   //cout << "ip Derecha: " << this->ipDer << " puerto: " << portDer << endl;
-  this->ipIzq = ipIzq;
-  this->portIzq = portIzq;
+  //this->ipIzq = ipIzq;
+  //this->portIzq = portIzq;
+
   //cout << "ip Izquierda: " << this->ipIzq << " puerto: " << portIzq << endl;
 
   //se pregunta por la ip de mi pc///////////////////////////////
@@ -183,13 +184,15 @@ void Naranja::enviarInicial(){
   //cout << "Enviando: " << inicial.ip << " id: " << inicial.id << " a derecha: "<<  portDer <<endl;
   this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipDer,portDer);
   //cout << "Enviando: " <<inicial.ip << " id: " << inicial.id << " a izquierda: "<<  portIzq <<endl;
-  this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipIzq,portIzq);
+  //this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipIzq,portIzq);
+
   int otroIp = 0;
   bool miIp = false;
   int misPaquetes = 0;
   bool yaEsta = false;
+
   //recibir paquetes hasta que haya llegado mis otros 2
-  while(misPaquetes < 2){
+  while(misPaquetes < 1){
     this->udpNaranjas->receive((char*)&inicial,sizeof(inicial));
     memcpy((char*)&otroIp,(char*)&inicial.ip,4);
     //cout << "Se recibio id: " << inicial.id << "con ip: " << inicial.ip << endl;
@@ -209,14 +212,9 @@ void Naranja::enviarInicial(){
       ipsVecinos.push_back(otroIp);
       //cout << "Agregando Ip: " << otroIp << endl;
     }
-    //cout << udpNaranjas->getPortClient() << " :port & ip: " << udpNaranjas->getIpClient() << endl;
-    if(strcmp(udpNaranjas->getIpClient(),this->ipIzq) == 0 && udpNaranjas->getPortClient()==this->portIzq && !miIp){
-	    //cout << "Enviando paquete a derecha" << endl;
-      this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipDer,portDer);
-    }else if(strcmp(udpNaranjas->getIpClient(),this->ipDer) == 0 && udpNaranjas->getPortClient()==this->portDer && !miIp){
-      //cout << "Enviando paquete a izquierda" << endl;
-      this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipIzq,portIzq);
-    }
+    if(!miIp)
+    	this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipDer,portDer);
+
     yaEsta = false;
     miIp = false;
   }
