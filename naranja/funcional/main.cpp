@@ -18,9 +18,10 @@ int main(int argc, char* argv[]){
     char* ipIzq = argv[6];
     int portIzq = atoi(argv[7]); 
     int a;
-    cout << "ingrese key" << endl;
+    //cout << "ingrese key" << endl;
     //cin >> a;
     Naranja naranja(portNaranja,0,argv[3],ipDer,portDer);
+    cout << "ingrese "<<endl;
     cin >> a;
     naranja.iniciar();
   }

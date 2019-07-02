@@ -181,7 +181,7 @@ void Naranja::enviarInicial(){
   inicial.id = (char)0;
   memcpy((char*)&inicial.id,&id,1);
   //enviar por der e izq
-  //cout << "Enviando: " << inicial.ip << " id: " << inicial.id << " a derecha: "<<  portDer <<endl;
+  cout << "Enviando: " << inicial.ip << " id: " << inicial.id << " a derecha: "<<  portDer <<endl;
   this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipDer,portDer);
   //cout << "Enviando: " <<inicial.ip << " id: " << inicial.id << " a izquierda: "<<  portIzq <<endl;
   //this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipIzq,portIzq);
@@ -197,7 +197,7 @@ void Naranja::enviarInicial(){
     memcpy((char*)&otroIp,(char*)&inicial.ip,4);
     //cout << "Se recibio id: " << inicial.id << "con ip: " << inicial.ip << endl;
     if(inicial.ip == this->miIp){
-      //cout << "Llego un pack mio" << endl;
+      cout << "Llego un pack mio" << endl;
       miIp = true;
       yaEsta = true;
       ++misPaquetes;
@@ -210,7 +210,7 @@ void Naranja::enviarInicial(){
     }
     if(!yaEsta){
       ipsVecinos.push_back(otroIp);
-      //cout << "Agregando Ip: " << otroIp << endl;
+      cout << "Agregando Ip: " << otroIp << endl;
     }
     if(!miIp)
     	this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipDer,portDer);
