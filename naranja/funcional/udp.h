@@ -12,11 +12,6 @@
 #include <string.h>
 
 using namespace std;
-#define PAYLOADUDP_CAP 1024
-
-struct udp_frame{
-  char payload[PAYLOADUDP_CAP]; //1kb payload
-};
 
 struct udp_ClieData{
   in_addr addr;

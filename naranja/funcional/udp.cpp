@@ -1,16 +1,15 @@
 #include "udp.h"
 
 /*
-  Constructor for the SecureUDP class
+  Constructor for the UDP class
 */
 UDP::UDP(int port){
   this->port = port;
   setSocket();
-  //start();
 }
 
 /*
-  Destructor for the SecureUDP class
+  Destructor for the UDP class
 */
 UDP::~UDP(){
    close(sock_fd);
@@ -31,11 +30,9 @@ char* UDP::getIpClient(){
 }
 
 /*
-  Encapsultates the data in a SecureUPD header and adds it to the send map.
+  Send msg buffer of size to ip and port
 */
 void UDP::sendTo(char* data,int size, char* ip, uint16_t port){
-  udp_frame* curr_frame = new udp_frame();
-
   sockaddr_in dest_addr;
   struct in_addr addr;
   memset(&dest_addr, 0, sizeof(dest_addr));
@@ -45,41 +42,24 @@ void UDP::sendTo(char* data,int size, char* ip, uint16_t port){
   //dest_addr.sin_addr = ip;
   inet_aton(ip,&addr);
   dest_addr.sin_addr = addr;
-
   cout << "ip: " << ip << endl;
-
-  //copies the data.
-  memcpy((char*) curr_frame->payload, data , PAYLOADUDP_CAP);
-
   //sendto
-  sendto(sock_fd, (char*) curr_frame, sizeof(udp_frame),0,
+  cout << sendto(sock_fd,data, size,0,
   (sockaddr*) &dest_addr, sizeof(sockaddr_in));
-
-  delete curr_frame;
 }
 
 /*
-
-
+  Receive Msg and save it in buffer 
 */
 void UDP::receive(char* buffer,int size){
-
    sockaddr_in src_addr;
    socklen_t sz = sizeof(src_addr);
-
-   udp_frame *curr_frame = new udp_frame();
-
    //recvfrom syscall
-   recvfrom(sock_fd,(char*) curr_frame, sizeof(curr_frame),0,(sockaddr*)&src_addr,&sz);
-
+   cout << recvfrom(sock_fd,buffer, size,0,(sockaddr*)&src_addr,&sz);
    //sets de addr and port of the receiver in network order.
    //inet_aton(ip,&clientData->addr);
    clientData.addr = src_addr.sin_addr;
    clientData.port = ntohs(src_addr.sin_port);
-
-   //copies the payload.
-   memcpy(buffer, (char*)curr_frame->payload,size);
-   delete curr_frame;
 }
 
 /////////////////////////////////Private functions//////////////////////////////////////////
