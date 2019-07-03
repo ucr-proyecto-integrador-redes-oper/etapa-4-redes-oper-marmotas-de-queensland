@@ -44,7 +44,7 @@ void UDP::sendTo(char* data,int size, char* ip, uint16_t port){
   dest_addr.sin_addr = addr;
   cout << "ip: " << ip << endl;
   //sendto
-  cout << sendto(sock_fd,data, size,0,
+  sendto(sock_fd,data, size,0,
   (sockaddr*) &dest_addr, sizeof(sockaddr_in));
 }
 
@@ -55,7 +55,7 @@ void UDP::receive(char* buffer,int size){
    sockaddr_in src_addr;
    socklen_t sz = sizeof(src_addr);
    //recvfrom syscall
-   cout << recvfrom(sock_fd,buffer, size,0,(sockaddr*)&src_addr,&sz);
+   recvfrom(sock_fd,buffer, size,0,(sockaddr*)&src_addr,&sz);
    //sets de addr and port of the receiver in network order.
    //inet_aton(ip,&clientData->addr);
    clientData.addr = src_addr.sin_addr;

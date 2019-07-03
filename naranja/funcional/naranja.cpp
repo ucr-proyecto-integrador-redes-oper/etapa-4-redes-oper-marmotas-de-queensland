@@ -33,8 +33,9 @@ Naranja::Naranja(int portNaranja,short portAzul,string pathcsv,char* ipDer,short
   // cout << "Tamanio solicitud: " << sizeof(pack_solicitud) << endl;
   // cout << "Tamanio complete: " << sizeof(complete) << endl;
   // cout << "Tamanio vacio: " << sizeof(vacio) << endl;
-
-  // enviarInicial();
+  //char a;
+  //cin >> a;
+  //enviarInicial();
 }
 
 Naranja::~Naranja(){
@@ -113,6 +114,7 @@ void Naranja::verificarPaquetes(){
     	this->udpNaranjas->receive((char*)&solicitud,sizeof(solicitud));
     	//se saca el id del paquete
     	memcpy((char*)&id,(char*)&solicitud.id,sizeof(char));
+	cout << "id: " << id<<endl;
     }else{//si tengo el token
  	    id = 3;
     }
@@ -176,10 +178,10 @@ void Naranja::verificarPaquetes(){
 void Naranja::enviarInicial(){
   //enviar inicial
   queue<pack_inicial> paquetesIniciales;
-  char id = '0';
+  char id = 0;
   inicial.ip = this->miIp;
-  inicial.id = (char)0;
-  memcpy((char*)&inicial.id,&id,1);
+  inicial.id = 0;
+  //memcpy((char*)&inicial.id,&id,1);
   //enviar por der e izq
   cout << "Enviando: " << inicial.ip << " id: " << inicial.id << " a derecha: "<<  portDer <<endl;
   this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipDer,portDer);
@@ -212,9 +214,11 @@ void Naranja::enviarInicial(){
       ipsVecinos.push_back(otroIp);
       cout << "Agregando Ip: " << otroIp << endl;
     }
-    if(!miIp)
+    if(!miIp){
+	inicial.id= 0;
+	cout << "Enviando id: " <<inicial.id <<" ip: "<<inicial.ip << endl;
     	this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipDer,portDer);
-
+    }
     yaEsta = false;
     miIp = false;
   }
