@@ -94,8 +94,8 @@ public:
 	void enviarComplete();//envia pack indicando complete
 	//Cosas Azules
 	void recibirSolicitudAzul(); // Recibe solicitud de un azul para unirse 14
-	void enviarPosicion(vector<int> vecinos_nodo);//Envia al azul su posición en el grafo 15
-	void enviarPosConVecino(vector<int> vecinos_nodo);//Envia al azul su posición en grafo y una lista de vecinos 16
+	void enviarPosicion(vector<int> vecinos_nodo,char* ipEnvio, uint16_t puertoEnvio);//Envia al azul su posición en el grafo 15
+	void enviarPosConVecino(vector<int> vecinos_nodo,char* ipEnvio, uint16_t puertoEnvio);//Envia al azul su posición en grafo y una lista de vecinos 16
 	//para el sig metodo ocupo algo para almacenar los nodos ocupados
 	void marcarNodoGrafo(int id);//Marca en el bitmap el nodo id
 	void ocuparNodoGrafo(); //al recibir una solicitud, la escribo en este metodo

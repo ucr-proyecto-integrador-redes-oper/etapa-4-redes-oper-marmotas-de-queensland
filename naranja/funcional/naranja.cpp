@@ -96,6 +96,7 @@ void Naranja::crearToken(){
 //contiene switch con los diferentes id de packs
 void Naranja::verificarPaquetes(){
   cout << "Recibiendo paquetes" << endl;
+  char* ipAzulcorrecto;
   int id = 5;
   if(this->token)
     id = 4;
@@ -123,9 +124,12 @@ void Naranja::verificarPaquetes(){
       	cout << solicitud.ipAzul << endl;
       	cout << solicitud.portAzul << endl;
         //guardar solicitud recibida
-        //agregarIPPuertoNodoAzul(solicitud.idNodo,(char*)solicitud.ipAzul,portAzul);
-        ////marcarNodoGrafo(solicitud.id);
-        //enviar solicitud al sig
+        in_addr ipEnInt;
+        ipEnInt.s_addr = solicitud.ipAzul;
+        ipAzulcorrecto = inet_ntoa(ipEnInt);
+        this->agregarIPPuertoNodoAzul(solicitud.idNodo,ipAzulcorrecto,solicitud.portAzul);
+        this->marcarNodoGrafo(solicitud.id);
+        //enviar solicitud al siguiente
         this->udpNaranjas->sendTo((char*)&solicitud,sizeof(solicitud),ipDer,portDer);
         break;
 
@@ -136,7 +140,7 @@ void Naranja::verificarPaquetes(){
         this->enviarComplete();
 
         if(this->cantidadCompletos == 6)//si ya estan los complete
-          enviarCompleteAzules();//avisar a los azules
+          this->enviarCompleteAzules();//avisar a los azules
 
         break;
 
@@ -146,7 +150,7 @@ void Naranja::verificarPaquetes(){
         if(this->solicitudes.empty()){//si no hay solicitudes
           cout << "No hay solicitudes de nodo azul, enviando token vacio." << endl;
           this->enviarTokenVacio();//envie token vacio
-	  this->token = 0 ;
+	        this->token = 0;
           break;//se hace el break dentro del if para que pase al case 4
           //en caso de que hayan solicitudes
         }
@@ -157,7 +161,8 @@ void Naranja::verificarPaquetes(){
         if(!this->solicitudes.empty()){
           cout << "Atendiendo solicitud de nodo azul." << endl;
           //atender una solicitud
-          enviarSolicitud(solicitud);
+          this->ocuparNodoGrafo();
+          //enviarSolicitud(solicitud);
         }
         cout << "Enviando token vacio." << endl;
         this->enviarTokenVacio();//envie token vacio luego de realizar una solicitud
@@ -278,56 +283,60 @@ Modifica: Cola de solicitudes
 */
 void Naranja::recibirSolicitudAzul(){
   char buffer[7];
-  pair<char*,uint16_t> info_client;
+  pair<char*,uint16_t> info_client; //IP y puerto de azul solicitante
   info_client = this->sudpAzules->receive(buffer);
-  if(!grafoCompleto && (strcmp(buffer, "14") == 0))
+  if(!grafoCompleto && (strcmp(buffer, "14") == 0)) // Si el grafo esta incompleto y es una solicitud f_join_graph
   {
       //Se crea paquete
       pack_solicitud nuevaSolicitud;
       nuevaSolicitud.id = 1;
-      ip_converter.cargarIP(info_client.first, &addrInvertido);
+      ip_converter.cargarIP(info_client.first, &addrInvertido); //Funcion que corrige endianness de direccion de nodo
       //ip_converter.printIP(&addrInvertido);
-      nuevaSolicitud.ipAzul = (uint32_t)addrInvertido.intValue;
+      nuevaSolicitud.ipAzul = addrInvertido.intValue;
       nuevaSolicitud.portAzul = info_client.second;
   		// Se encola paquete
-  		guardarSolicitud(nuevaSolicitud);
+  		guardarSolicitud(nuevaSolicitud); //Se encola solicitud
   }
 }
 
 /*
-Efecto: Envia al azul su posición en el grafo. Numero paquete = 15
+Efecto: Envia al azul su posición en el grafo. Cuando sus vecinos no necesariamente estan instanciados.
+Numero paquete = 15
 Requiere: Número de nodo que se asignó
 Modifica: El numero en grafo del azul al que se envía el paquete
 */
-void Naranja::enviarPosicion(vector<int> vecinos_nodo,char* r_ip, uint16_t r_port){
-  int i = 0;
+void Naranja::enviarPosicion(vector<int> vecinos_nodo,char* ipEnvio, uint16_t puertoEnvio){
+  int i = 1;
   while(vecinos_nodo[i] != -1){
     f_graph_pos pos_nodo;
     pos_nodo.node_id = (uint16_t)vecinos_nodo[0];
     pos_nodo.neighbor_id = (uint16_t)vecinos_nodo[i];
     //enviar paquete
-    this->sudpAzules->sendTo();
+    this->sudpAzules->sendTo((char*)&pos_nodo, sizeof(pos_nodo),ipEnvio,puertoEnvio);
     i++;
   }
 }
 
 /*
-Efecto: Envia al azul su posición en grafo y una lista de vecinos. Numero paquete = 16
+Efecto: Envia al azul su posición en grafo y una lista de vecinos y sus direcciones y puertos
+si estan instanciados. Numero paquete = 16
 Requiere: Número de nodo que se asignó, lista de vecinos
 Modifica: El numero en grafo del azul al que se le envía el paquete y sus lista de vecinos
 */
-void Naranja::enviarPosConVecino(vector<int> vecinos_nodo,char* r_ip, uint16_t r_port){
-  int i = 0;
+void Naranja::enviarPosConVecino(vector<int> vecinos_nodo,char* ipEnvio, uint16_t puertoEnvio){
+  IPConverter ip_converter;
+  int i = 1;
   while(vecinos_nodo[i] != -1){
-    if(mapAzules.Test(vecinos_nodo[i])){ //vecino esta instanciado
+    if(misAzules->Test(vecinos_nodo[i])){ //vecino esta instanciado
       f_graph_pos_i pos_nodo_vecino;
       pos_nodo_vecino.node_id = (uint16_t)vecinos_nodo[0];
       pos_nodo_vecino.neighbor_id = (uint16_t)vecinos_nodo[i];
       pair<char*,uint16_t> infoAzul = obtenerIPPuertoNodoAzul(vecinos_nodo[i]);
-      pos_nodo_vecino.neighbor_ip = infoAzul.first;
+      ip_converter.cargarIP(infoAzul.first, &addrInvertido);
+      pos_nodo_vecino.neighbor_ip = addrInvertido.intValue;
       pos_nodo_vecino.neighbor_port = infoAzul.second;
       //enviar paquete
-      this->sudpAzules->sendTo(pos_nodo_vecino, sizeof(pos_nodo_vecino));
+      this->sudpAzules->sendTo((char*)&pos_nodo_vecino, sizeof(pos_nodo_vecino),ipEnvio,puertoEnvio);
       delete infoAzul.first;
     }
     else{ // vecino no esta instanciado
@@ -335,7 +344,7 @@ void Naranja::enviarPosConVecino(vector<int> vecinos_nodo,char* r_ip, uint16_t r
       pos_nodo.node_id = (uint16_t)vecinos_nodo[0];
       pos_nodo.neighbor_id = (uint16_t)vecinos_nodo[i];
       //enviar
-      this->sudpAzules->sendTo(pos_nodo, sizeof(pos_nodo),);
+      this->sudpAzules->sendTo((char*)&pos_nodo, sizeof(pos_nodo),ipEnvio,puertoEnvio);
     }
     i++;
   }
@@ -361,8 +370,13 @@ void Naranja::ocuparNodoGrafo(){
   //Desencola de lista de solicitudes
   pack_solicitud nuevaSolicitud = solicitudes.front();
   solicitudes.pop();
+  //Se obtiene el ip a partir del uint32_t
+
+  in_addr ipEnInt;
+  ipEnInt.s_addr = nuevaSolicitud.ipAzul;
+  char* ipAzul = inet_ntoa(ipEnInt);
   //Asuma que el paquete es rechazado
-  nuevaSolicitud.idNodo = -1;
+  bool aceptado = false;
   //Si el grafo está incompleto
   if(!grafoCompleto){
     //Asigna en mapa de bits
@@ -371,26 +385,27 @@ void Naranja::ocuparNodoGrafo(){
     misAzules->Mark(id);
     //Se acepta solicitud
     nuevaSolicitud.idNodo = id;
+    this->agregarIPPuertoNodoAzul(nuevaSolicitud.idNodo,ipAzul,nuevaSolicitud.portAzul);
     //Envia paquete a los naranjas por el anillo
-    enviarSolicitud(nuevaSolicitud); //CAMBIAR
+    enviarSolicitud(nuevaSolicitud);
   }
   //Si mi paquete fue aceptado
-  if(nuevaSolicitud.idNodo > -1 ){
+  if(aceptado){
     vector <int> vecinos = obtener_vecinos(nuevaSolicitud.idNodo, pathcsv);
     //Si tengo ips de Vecinos
-    if(vecinos[1] == -1){
-      enviarPosicion(vecinos);
+    if(vecinos[1] == -1){//Si no tiene vecinos
+      enviarPosicion(vecinos,ipAzul,nuevaSolicitud.portAzul);
     }
-    else{
-      //While existan vecinos
+    else{//Si tiene vecinos
 	//Crear paquete y enviar
-      enviarPosConVecino(vecinos);
+      enviarPosConVecino(vecinos,ipAzul,nuevaSolicitud.portAzul);
     }
   }
   else{
     //Devuelve solicitud a cola
     solicitudes.push(nuevaSolicitud);
   }
+  delete ipAzul;
 }
 
 /*
@@ -401,8 +416,18 @@ Modifica: Los nodos azules se activan
 void Naranja::enviarCompleteAzules(){
   if(grafoCompleto){
   //Para cada nodo azul de mi lista
-  pack_complete grafoCompleto;
-    //envio paquete de complete.
+    f_graph_complete grafoCompleto;
+    grafoCompleto.type = 17;
+    for(int i = 0; i<this->misAzules->numBits;i++)
+    {
+      if(misAzules->Test(i))
+      {
+        pair<char*,uint16_t> infoAzul = obtenerIPPuertoNodoAzul(i);
+        //Envio paquete de complete.
+        this->sudpAzules->sendTo((char*)& grafoCompleto, sizeof(grafoCompleto),infoAzul.first,infoAzul.second);
+        delete infoAzul.first;
+      }
+    }
   }
 }
 
@@ -445,14 +470,17 @@ pair<char*,uint16_t>  Naranja::obtenerIPPuertoNodoAzul(int id)
   string ip;
   string puerto;
   fstream myfile("listaIPSAzules.csv");
+  //Abre el archivo con la listas de ip
   if(!myfile.is_open())
   {
     cout<<"ERROR AL ABRIR LISTA IPS"<<endl;
   }
   else
   {
+    //Itera por el archivo buscando el nodo y lo devuelve
     while(myfile.good() && !found)
     {
+
       getline(myfile,idObtenida,',');
       getline(myfile,ip,',');
       getline(myfile,puerto,'\n');

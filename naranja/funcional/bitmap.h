@@ -45,9 +45,10 @@ class BitMap {
 
     void Print();		// Print contents of bitmap
 
+    int numBits;			// number of bits in the bitmap
+
 
   private:
-    int numBits;			// number of bits in the bitmap
     int numWords;			// number of words of bitmap storage
 					// (rounded up if numBits is not a
 					//  multiple of the number of bits in
