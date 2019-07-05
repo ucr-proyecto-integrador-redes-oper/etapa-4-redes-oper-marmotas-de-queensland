@@ -6,6 +6,7 @@
 #include <thread>
 #include <utility> //pares
 #include "paquetes.h"
+#include "IPConverter.h"
 
 #include <stdio.h>
 #include <netdb.h>
@@ -18,11 +19,15 @@
 //////////
 #include "udp.h"
 #include "bitmap.h"
+#include "sudp.h" //CAMBIAR AL UNIR TODO
+#include "frames.h"//CAMBIAR AL UNIR TODO
+
 ////////////
 
 using namespace std;
 #ifndef NARANJA_H
 #define NARANJA_H
+#define WAIT_SUDP 2
 
 class Naranja{
 //https://www.lucidchart.com/documents/edit/bc90a84e-13b2-4c16-8461-54da604c8015/0
@@ -36,15 +41,13 @@ private:
 	//vecino der
 	char* ipDer;
 	short portDer;
-	//vecino izq
-	//char* ipIzq;
-	//short portIzq;
+
 
 	uint32_t miIp;
 
 	//ports para naranjas y azules
 	UDP* udpNaranjas;
-	UDP* udpAzules;
+	SecureUDP*  sudpAzules;
 
 	//paquetes
 	struct pack_inicial inicial;
@@ -54,9 +57,13 @@ private:
 
 	//azules
 	queue<pack_solicitud> solicitudes;//cola de solicitudes de los azules.
+	IPConverter ip_converter;
+	IpAddrType addrInvertido;
 	//file csv
+	string pathcsv;
 	int line_count;
 	int count_Lines(string &path);
+	vector<int> obtener_vecinos(int nodo, string &path);
 
 	//bitmap para todos los azules (de todos los naranjas) que se estan ocupando
 //revisar en le bitmap los vecinos del nodo que estoy pidiendo, por si ya estan siendo ocupados
@@ -82,16 +89,23 @@ public:
 
 	//paquetes:
 	void enviarInicial(); //envia un paquete inicial para saber la ip
-	void enviarSolicitud(); //envia solicitud al vecino naranja derecho
+	void enviarSolicitud(pack_solicitud solicitud); //envia solicitud al vecino naranja derecho
 	void enviarTokenVacio(); //envia un paquete indicando que el token esta libre
 	void enviarComplete();//envia pack indicando complete
 	//Cosas Azules
 	void recibirSolicitudAzul(); // Recibe solicitud de un azul para unirse 14
-	void enviarPosicion();//Envia al azul su posición en el grafo 15
-	void enviarPosconVecino();//Envia al azul su posición en grafo y una lista de vecinos 16
+	void enviarPosicion(vector<int> vecinos_nodo);//Envia al azul su posición en el grafo 15
+	void enviarPosConVecino(vector<int> vecinos_nodo);//Envia al azul su posición en grafo y una lista de vecinos 16
 	//para el sig metodo ocupo algo para almacenar los nodos ocupados
+	void marcarNodoGrafo(int id);//Marca en el bitmap el nodo id
 	void ocuparNodoGrafo(); //al recibir una solicitud, la escribo en este metodo
+	void enviarAsignado();
 	void enviarCompleteAzules();//envia un pack a los azules para que empiecen 17
+	//Metodos para almacenar y obtener datos azules:
+	void limpiarArchivoDatosAzul() ;//Crea/limpia un archivo con datos del azules
+	void agregarIPPuertoNodoAzul(int id, char* ip, uint16_t puerto); //Agrega la IP a un archivo
+	pair<char*,uint16_t>  obtenerIPPuertoNodoAzul(int id);// Retorna un par con la ip e int con ip-puerto. Se debe hacer delete al .first del par que recibe.
+
 
 
 };

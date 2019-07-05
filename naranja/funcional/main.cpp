@@ -5,7 +5,7 @@
 using namespace std;
 
 //compilar:
-//g++ -o naranja *.cpp -std=c++11
+//g++ -o naranja *.cpp -std=c++11 -pthread *.cc
 
 int main(int argc, char* argv[]){
   if(argc < 6){
@@ -16,7 +16,7 @@ int main(int argc, char* argv[]){
     char* ipDer = argv[4];
     int portDer = atoi(argv[5]);
     char* ipIzq = argv[6];
-    int portIzq = atoi(argv[7]); 
+    int portIzq = atoi(argv[7]);
     int a;
     //cout << "ingrese key" << endl;
     //cin >> a;
