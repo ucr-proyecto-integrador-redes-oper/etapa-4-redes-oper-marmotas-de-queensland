@@ -13,10 +13,6 @@ Naranja::Naranja(int portNaranja,short portAzul,string pathcsv,char* ipDer,short
   this->ipDer = ipDer;
   this->portDer = portDer;
   //cout << "ip Derecha: " << this->ipDer << " puerto: " << portDer << endl;
-  //this->ipIzq = ipIzq;
-  //this->portIzq = portIzq;
-
-  //cout << "ip Izquierda: " << this->ipIzq << " puerto: " << portIzq << endl;
 
   //se pregunta por la ip de mi pc///////////////////////////////
   string localIp;
@@ -24,18 +20,10 @@ Naranja::Naranja(int portNaranja,short portAzul,string pathcsv,char* ipDer,short
   cin >> localIp;
 
   this->miIp = inet_addr(localIp.c_str());//pasar de string a int
-  cout << "Int de la Ip: "<< localIp <<" es: " << this->miIp << endl;
+  // cout << "Int de la Ip: "<< localIp <<" es: " << this->miIp << endl;
   //////////////////////////////////////////////////////////////
   //cantidad de nodos en el grafo, para luego iniciar los bitmap
   count_Lines(pathcsv);
-  cout << line_count << endl;
-  // cout << "Tamanio inicial: " << sizeof(pack_inicial) << endl;
-  // cout << "Tamanio solicitud: " << sizeof(pack_solicitud) << endl;
-  // cout << "Tamanio complete: " << sizeof(complete) << endl;
-  // cout << "Tamanio vacio: " << sizeof(vacio) << endl;
-  //char a;
-  //cin >> a;
-  //enviarInicial();
 }
 
 Naranja::~Naranja(){
@@ -44,7 +32,6 @@ Naranja::~Naranja(){
 }
 
 //funcionamiento interno:
-//arreglar esto
 int Naranja::count_Lines(string &path){
   line_count = 0;
   ifstream csvFile;
@@ -81,7 +68,7 @@ int Naranja::timeout(){
 int Naranja::verificarNaranjas(){
   int menor = 1;
   for(int i = 0 ; i < ipsVecinos.size() && menor == 1 ;++i)
-    if(ipsVecinos[i] < miIp)
+    if((unsigned int)ipsVecinos[i] < (unsigned int)miIp)
       menor = 0;
 
   return menor;
@@ -107,7 +94,8 @@ void Naranja::verificarPaquetes(){
     id = 4;
 
   //recibir paquetes
-  while(id){
+  bool continuar = true;
+  while(continuar){
     //recibir paquete, se recibe con el tipo de paquete mas grande posible
     if(token==0){ // si no tengo el token
     	cout << "Esperando por paquete" << endl;
@@ -119,6 +107,8 @@ void Naranja::verificarPaquetes(){
  	    id = 3;
     }
     switch (id) {
+      case 0:
+        break;
       case 1://recibo solicitud
         cout << "Se recibio una solicitud de otro nodo naranja." << endl;
       	cout << solicitud.id << endl;
@@ -166,7 +156,7 @@ void Naranja::verificarPaquetes(){
 
         break;
       default:
-        id = 0;
+        continuar = false;
         cout << "Terminando programa" << endl;
         break;
     }
@@ -175,18 +165,16 @@ void Naranja::verificarPaquetes(){
 
 //paquetes:
 //arreglar bug
+//con el de Roger , el debe enviar primero
+//con el de lucho yo debo enviar primero
 void Naranja::enviarInicial(){
   //enviar inicial
-  queue<pack_inicial> paquetesIniciales;
   char id = 0;
   inicial.ip = this->miIp;
   inicial.id = 0;
-  //memcpy((char*)&inicial.id,&id,1);
-  //enviar por der e izq
+  //enviar por der
   cout << "Enviando: " << inicial.ip << " id: " << inicial.id << " a derecha: "<<  portDer <<endl;
   this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipDer,portDer);
-  //cout << "Enviando: " <<inicial.ip << " id: " << inicial.id << " a izquierda: "<<  portIzq <<endl;
-  //this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipIzq,portIzq);
 
   int otroIp = 0;
   bool miIp = false;
@@ -215,16 +203,13 @@ void Naranja::enviarInicial(){
       cout << "Agregando Ip: " << otroIp << endl;
     }
     if(!miIp){
-	inicial.id= 0;
-	cout << "Enviando id: " <<inicial.id <<" ip: "<<inicial.ip << endl;
+	    inicial.id= 0;
+	    cout << "Enviando id: " <<inicial.id <<" ip: "<<inicial.ip << endl;
     	this->udpNaranjas->sendTo((char*)&inicial,sizeof(inicial),ipDer,portDer);
     }
     yaEsta = false;
     miIp = false;
   }
-  // for(int i = 0 ; i < ipsVecinos.size();++i)
-  //   cout << ipsVecinos[i] << endl;
-  cout << "Finalizo la fase inicial." << endl;
 }
 
 void Naranja::enviarSolicitud(){
