@@ -1,10 +1,10 @@
 #include "sudp.h"
+
 #include <cstdint>
 #include <cstring>
 #include <thread>
 #include <chrono>
 #include <iostream>
-
 #include <string>
 
 
@@ -73,8 +73,11 @@ void SecureUDP::sendTo(char* data, size_t sz,char* r_ip, uint16_t r_port){
   val->frame = curr_frame;
   val->rdata = receiver_data;
   val->msg_size = sz + 3;
-  std::cout << "Message size: " << sz + 3 << std::endl;
+  //std::cout << "Message size: " << sz << std::endl;
+
+  std::unique_lock<std::mutex> sm_lock(sm_m);
   s_map[sn] = val;
+  sm_lock.unlock();
 
   sn++;
   sn = sn % SN_CAP;
@@ -96,26 +99,26 @@ uint16_t SecureUDP::getPort(){
 * ret: std::pair<char*,uint16_t> with the IP and port of the sender.
 */
 std::pair<char*,uint16_t> SecureUDP::receive(char* buffer){
-  std::pair<sudp_frame*,sudp_rdata> frame_info;
+  std::pair<sudp_frame*,sudp_rdata*> frame_info;
 
-  //caller waits until the queue isn't empty
-  std::unique_lock<std::mutex> rq_lock(rq_m);
-  //std::cout << "Lock aquired by receive caller." << std::endl;
+  //caller blocks until the ready queue isn't empty
+  std::unique_lock<std::mutex> rd_lock(rd_m);
+  rd_cv.wait(rd_lock,[&]{return !ready_queue.empty();});
 
-  //std::cout << "Waiting on signal from receiver thread." << std::endl;
-  rq_cv.wait(rq_lock,[&](){return !r_queue.empty();});
-  //std::cout << "Siganl received." << std::endl;
-  frame_info = r_queue.front();
-  r_queue.pop();
-  //std::cout << "Queue operations working." << std::endl;
+  ready_mux.lock();
+  frame_info = ready_queue.front();
+  ready_queue.pop();
+  ready_mux.unlock();
+
 
   //sets the return values
-  char* sender_ip = inet_ntoa(frame_info.second.addr);
-  uint16_t sender_port = frame_info.second.port;
+  char* sender_ip = inet_ntoa(frame_info.second->addr);
+  uint16_t sender_port = ntohs(frame_info.second->port);
 
   //copies the payload.
   memcpy((char*) buffer, (char*) frame_info.first->payload,PAYLOAD_CAP);
   delete frame_info.first;
+  delete frame_info.second;
   return std::make_pair(sender_ip,sender_port);
 }
 
@@ -188,15 +191,13 @@ void SecureUDP::setSocket(){
 void SecureUDP::sender(){
   sudp_frame *curr_frame;
   sudp_rdata *dest_data;
-
-
   sockaddr_in dest_addr;
   memset(&dest_addr, 0, sizeof(dest_addr));
 
   while(true){
     std::this_thread::sleep_for(std::chrono::milliseconds(wait_time));
 
-    m_lock.lock();
+    std::unique_lock<std::mutex> sm_lock(sm_m);
     for(auto itr = s_map.begin(); itr != s_map.end();itr++){
       if(!s_map.empty()){
         curr_frame = itr->second->frame;
@@ -211,28 +212,67 @@ void SecureUDP::sender(){
         (sockaddr*) &dest_addr, sizeof(sockaddr_in));
         }
       }
-      m_lock.unlock();
+      sm_lock.unlock();
+    }
+  }
+
+
+/*
+* Function for the receiver thread.
+*/
+  void SecureUDP::receiver(){
+    sockaddr_in src_addr;
+    socklen_t sz = sizeof(src_addr);
+    int size;
+    while(true){
+      sudp_frame *curr_frame = new sudp_frame();
+      sudp_rdata *curr_data  = new sudp_rdata();
+
+      //recvfrom syscall, blocking
+      size = recvfrom(sock_fd,(char*) curr_frame, sizeof(sudp_frame),0,
+      (sockaddr*)&src_addr,&sz);
+      curr_data->addr = src_addr.sin_addr;
+      curr_data->port = src_addr.sin_port;
+
+      std::unique_lock<std::mutex> rq_lock(rq_m); //lock the cv
+
+      received_mux.lock();
+      received_queue.push(std::make_pair(curr_frame,curr_data));
+      received_mux.unlock();
+
+      //unlock the cv and notify waiting thread.
+      rq_lock.unlock();
+      rq_cv.notify_one();
     }
   }
 
 /*
-* Function for the receiver thread.
+* Function for the processor thread.
 * args: --
 * ret: --
 */
-void SecureUDP::receiver(){
-  sockaddr_in src_addr;
-  socklen_t sz = sizeof(src_addr);
-
+void SecureUDP::processor(){
+  sudp_frame *curr_frame;
+  sudp_rdata *curr_data;
+  std::pair<sudp_frame*,sudp_rdata*> frame_info;
   while(true){
-    sudp_frame *curr_frame = new sudp_frame();
-    //recvfrom syscall
-    recvfrom(sock_fd,(char*) curr_frame, sizeof(sudp_frame),0,
-    (sockaddr*)&src_addr,&sz);
 
-    //std::cout << "\nMessage Type: " << (int) curr_frame->type << " Message sn: " << (unsigned int) curr_frame->sn << std::endl;
-    if(curr_frame->type){ //ack
-      m_lock.lock();
+    std::unique_lock<std::mutex> rq_lock(rq_m); //lock for the cv
+    rq_cv.wait(rq_lock, [&]{return !received_queue.empty();}); //blocks until a message is ready to be processed
+
+    received_mux.lock();
+    frame_info = received_queue.front();
+    received_queue.pop();
+
+    received_mux.unlock(); //unlock the cv
+
+
+    curr_frame = frame_info.first;
+    curr_data = frame_info.second;
+
+    if(curr_frame->type){ //ack type.
+      //std::cout << "Ack received, removing from send map." << std::endl;
+      std::unique_lock<std::mutex> m_lock(sm_m);
       if(s_map.count(curr_frame->sn)){ //sn matches with one key from s_map,remove element
         delete s_map[curr_frame->sn]->frame;
         delete s_map[curr_frame->sn]->rdata;
@@ -240,26 +280,31 @@ void SecureUDP::receiver(){
         s_map.erase(curr_frame->sn);
       }
       m_lock.unlock();
+
     } else { //send-receive type, return an ack.
         curr_frame->type = 1;
 
+        sockaddr_in dest_addr;
+        memset(&dest_addr, 0, sizeof(dest_addr));
+        dest_addr.sin_family = AF_INET;
+        dest_addr.sin_addr = curr_data->addr;
+        dest_addr.sin_port = curr_data->port;
+
         //sendto syscall
-        //std::cout << "Sending ack to IP: " << inet_ntoa(src_addr.sin_addr) << " and port: " <<  ntohs(src_addr.sin_port)  << std::endl;
+        //std::cout << "Sending ack to IP: " << inet_ntoa(dest_addr.sin_addr) << " and port: " <<  ntohs(dest_addr.sin_port)  << std::endl;
         sendto(sock_fd, (char*) curr_frame, 3,0,
-        (sockaddr*) &src_addr, sizeof(sockaddr_in));
-        sudp_rdata sender_data;
-        sender_data.addr = src_addr.sin_addr;
-        sender_data.port = ntohs(src_addr.sin_port);
+        (sockaddr*) &dest_addr, sizeof(sockaddr_in));
 
-        std::unique_lock<std::mutex> rq_lock(rq_m);
-        //std::cout << "Lock aquired by receiver thread." << std::endl;
+        //pushes data into ready queue.
+        std::unique_lock<std::mutex> rd_lock(rd_m); //lock for the cv
 
-        r_queue.push(std::make_pair(curr_frame,sender_data));
-        rq_lock.unlock();
-        //std::cout << "Realeased mutex from receiver thread." << std::endl;
+        ready_mux.lock();
+        ready_queue.push(frame_info);
+        ready_mux.unlock();
 
-        rq_cv.notify_one();
-        //std::cout << "Notifying caller thread." << std::endl;
+        rd_lock.unlock(); //unlock the cv
+        rd_cv.notify_one();
+
     }
   }
 }
@@ -273,6 +318,8 @@ void SecureUDP::receiver(){
 void SecureUDP::start(){
   std::thread s(&SecureUDP::sender,this);
   std::thread r(&SecureUDP::receiver,this);
+  std::thread p(&SecureUDP::processor,this);
   s.detach();
   r.detach();
+  p.detach();
 }

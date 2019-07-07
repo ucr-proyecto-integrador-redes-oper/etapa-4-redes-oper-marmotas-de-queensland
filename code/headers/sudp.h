@@ -75,17 +75,26 @@ class SecureUDP{
     uint16_t port;
     uint16_t sn;
 
-    std::mutex rq_m; //receive queue mutex
-    std::mutex m_lock; //map mutex
-    std::condition_variable rq_cv; //receive queue cv
-    std::queue<std::pair<sudp_frame*,sudp_rdata>> r_queue; //received queue
+    std::queue<std::pair<sudp_frame*,sudp_rdata*>> ready_queue; //ready queue
+    std::queue<std::pair<sudp_frame*,sudp_rdata*>> received_queue; //received queue
     std::map<uint16_t,smap_value*> s_map; //send map
+
+    std::mutex rq_m; //received queue mutex
+    std::mutex received_mux;
+    std::mutex ready_mux;
+
+
+    std::condition_variable rq_cv; //received queue cv
+    std::condition_variable rd_cv; //ready queue cv
+    std::mutex rd_m; //ready queue mutex, for the cv
+    std::mutex sm_m; //send map mutex, for the cv
 
     void setSocket(uint16_t);
     void setSocket();
 
     //Thread routines.
     void sender();
+    void processor();
     void receiver();
     void start();
 };

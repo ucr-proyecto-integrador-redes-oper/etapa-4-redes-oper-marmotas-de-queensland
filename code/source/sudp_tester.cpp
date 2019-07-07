@@ -10,7 +10,7 @@
 
 
 
-SecureUDP sudp(8888,1000);
+SecureUDP sudp(8888,5000);
 
 void writer(){
   std::stringstream msg;
@@ -28,7 +28,7 @@ void writer(){
     std::getline(std::cin,port);
     msg.seekg(0,std::ios::end);
     msg_size = msg.tellg();
-    std::cout << "Sending size " << msg_size << std::endl;
+    //std::cout << "Sending size " << msg_size << std::endl;
     sudp.sendTo(&msg.str()[0],msg_size,&ip[0],std::stoi(port));
   }
 }
@@ -40,7 +40,7 @@ void reader(){
   std::pair<char*,uint16_t> sender_data;
   while(true){
     sender_data = sudp.receive(buffer);
-    std::cout << "\nEn Reader: Mensaje leido: ";
+    std::cout << "Mensaje leido: ";
     std::cout << buffer << std::endl;
     std::cout << "Desde IP,Puerto: " << sender_data.first << "," << sender_data.second << std::endl;
   }
