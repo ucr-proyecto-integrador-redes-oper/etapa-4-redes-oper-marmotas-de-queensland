@@ -2,6 +2,7 @@
 #define BLUE_H_
 
 #include <map>
+#include <string.h>
 #include "sudp.h"
 #include "frames.h"
 
@@ -21,6 +22,8 @@ public:
   ~BlueNode();
   char* getIP();
   uint16_t getPort();
+  void sendHello(uint16_t myID);
+  void waitForComplete();
 
 
 private:
