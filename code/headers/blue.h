@@ -36,7 +36,7 @@ private:
     void joinGraph();
     uint8_t getType(char*);
 
-    void sendHello(uint16_t myID);
+    void sendHello(uint16_t myID,n_data neighbour);
     void waitForComplete();
 
     //Thread routines.

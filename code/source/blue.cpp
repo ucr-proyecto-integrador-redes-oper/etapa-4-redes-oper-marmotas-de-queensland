@@ -59,28 +59,16 @@ Effect: Sends hello message to neighbors
 Requires: Map of Neighbors filled in.
 Modifies: --
 */
-void BlueNode::sendHello(uint16_t myID){
-  std::map<uint16_t,n_data>::iterator iter = neighbours.begin();
-  n_data neighbour;
+void BlueNode::sendHello(uint16_t myID,n_data neighbour){
   f_hello greeting;
   greeting.type=1;
   greeting.node_id=myID;
-	// Iterate over the map of neighbors
-	while (iter != neighbours.end()){
-		// Se obtiene par
-		neighbour = iter->second;
-    //Si se tiene la ip, se envía
-    if(strncmp(neighbour.n_ip,"",sizeof(neighbour.n_ip)) == 0)
-    {
-      //Envia Hello
-      sudp.sendTo((char*)& greeting, sizeof(greeting),neighbour.n_ip,neighbour.n_port);
-    }
-		iter++;
-	}
+  //Si se tiene la ip, se envía
+  sudp.sendTo((char*)& greeting, sizeof(greeting),neighbour.n_ip,neighbour.n_port);
 }
 
 /*
-NOTA: Qué pasa con los otros frames que recibe?.
+NOTA: Qué pasa con los otros frames que recibe?. 
 Effect: Waits until a correct complete message arrives
 Requires: --
 Modifies: --
