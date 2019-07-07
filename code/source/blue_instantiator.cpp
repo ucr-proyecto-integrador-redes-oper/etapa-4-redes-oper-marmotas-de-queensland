@@ -12,14 +12,13 @@
 */
 int main(int argc, char* argv[]){
   char* serv_ip = argv[1];
+  char* node_ip = argv[3];
   uint16_t serv_port = std::stoi(argv[2]);
-  BlueNode b_node(serv_ip,serv_port);
+  BlueNode b_node(serv_ip,serv_port,node_ip);
   std::ofstream blue_data("../data/blue_data.txt", std::ios::app);
   blue_data << getpid() << ',';
   blue_data << b_node.getPort() << '\n';
   blue_data.close();
-  while(true){
-    //do stuff
-  }
+  b_node.start();
   return 0;
 }
