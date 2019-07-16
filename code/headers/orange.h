@@ -13,6 +13,12 @@
 #include <sstream>
 #include <string.h>
 #include <fstream>
+#include <thread>
+#include <chrono>
+#include <unistd.h>
+
+#include <mutex>
+#include <condition_variable>
 
 //////////
 #include "orange_udp.h"
@@ -31,7 +37,7 @@ class Naranja{
 
 private:
 	vector<uint32_t> ipsVecinos; //vector que contiene las ips de los demas naranjas
-	int banderaSolicitud; //bandera de cuando se envia el token de solicitud, para que espere por dicho token
+	int banderaToken; //bandera de cuando se envia el token de solicitud, para que espere por dicho token
 	int cantidadCompletos; //cuando llega a la cantidad de naranjas(6), manda mensajes a los azules.
 	int token; //0 que no tengo el token, 1 que el token me pertenece.
 
@@ -39,6 +45,12 @@ private:
 	char* ipDer;
 	short portDer;
 
+	//cantidad azules que aguanta el naranja.
+	int cantidadAzules;
+
+	bool continuar;
+	std::mutex m;
+  std::condition_variable cv;
 
 	uint32_t miIp;
 
@@ -73,7 +85,7 @@ private:
 	map<uint16_t,pair <uint32_t, uint16_t>> mapAzules;
 
 public:
-	Naranja(int,short,string,char*,short);
+	Naranja(int,int,short,string,char*,short);
 	~Naranja();
 
 	//funcionamiento interno:
