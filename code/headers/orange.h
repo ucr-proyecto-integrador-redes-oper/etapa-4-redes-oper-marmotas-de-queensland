@@ -49,6 +49,8 @@ private:
 	int cantidadAzules;
 
 	bool continuar;
+	bool banderaComplete;
+
 	std::mutex m;
   std::condition_variable cv;
 
@@ -57,7 +59,6 @@ private:
 	//ports para naranjas y azules
 	UDP* udpNaranjas;
 	SecureUDP*  sudpAzules;
-
 	//paquetes
 	struct pack_inicial inicial;
 	struct pack_solicitud solicitud;
@@ -101,6 +102,7 @@ public:
 	void enviarSolicitud(pack_solicitud solicitud); //envia solicitud al vecino naranja derecho
 	void enviarTokenVacio(); //envia un paquete indicando que el token esta libre
 	void enviarComplete();//envia pack indicando complete
+
 	//Cosas Azules
 	void recibirSolicitudAzul(); // Recibe solicitud de un azul para unirse 14
 	void enviarPosicion(vector<int> vecinos_nodo,char* ipEnvio, uint16_t puertoEnvio);//Envia al azul su posición en el grafo 15

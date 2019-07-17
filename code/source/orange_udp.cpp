@@ -42,7 +42,7 @@ void UDP::sendTo(char* data,int size, char* ip, uint16_t port){
   //dest_addr.sin_addr = ip;
   inet_aton(ip,&addr);
   dest_addr.sin_addr = addr;
-  cout << "ip: " << ip << endl;
+  // cout << "ip: " << ip << endl;
   //sendto
   sendto(sock_fd,data, size,0,
   (sockaddr*) &dest_addr, sizeof(sockaddr_in));
