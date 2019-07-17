@@ -38,8 +38,10 @@ private:
     bool tree_member;
 
     SecureUDP sudp = decltype(sudp)(1000);
-    std::mutex orange_mtx;
-    std::mutex gb_mtx;
+    std::mutex orange_mtx; //for the cv.
+    std::mutex gb_mtx; //for the cv.
+    std::mutex orange_lock; //lock for the orange buffer.
+    std::mutex gb_lock; //lock for the green-blue buffer.
     std::condition_variable orange_cv;
     std::condition_variable gb_cv;
 
@@ -47,6 +49,8 @@ private:
     std::map<uint16_t,node_data> neighbours; //graph neighbours.
     node_data parent_data; //parent data for the spanning tree.
     std::map<uint16_t,node_data> child_nodes; // spanning tree child nodes.
+    std::queue<char*> orange_queue; //orange buffer.
+    std::queue<char*> gb_queue; //green-blue buffer.
 
     //Utility routines.
     uint8_t getType(char*);

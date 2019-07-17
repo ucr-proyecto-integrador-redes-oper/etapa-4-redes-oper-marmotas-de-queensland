@@ -1,6 +1,6 @@
-#include <utility>
 #include <thread>
 #include <chrono>
+#include <utility>
 #include "blue.h"
 
 
@@ -159,10 +159,12 @@ void BlueNode::joinTree(){
           addChildNode(sender_data.first,sender_data.second,buffer.node_id);
           break;
         default: // invalid type.
+          //add log message here.
           break;
       }
     } //end-while(receiving)
     if(!tree_member){ //no neighbour is in spanning tree yet, wait and try again.
+      ans_map.clear();
       std::this_thread::sleep_for(std::chrono::milliseconds(1500));
     }
   } //end-while(!tree_member)
@@ -185,66 +187,71 @@ void BlueNode::addChildNode(char* ip, uint16_t port, uint16_t node_id){
 
 
 /**
-* @brief
-* @param
-* @param
+* @brief This function handles the arrival of a join tree request(type 11).
+* @param ip the IP of the sender node.
+* @param port the port of the sender node.
 * @return --
 */
-void BlueNode::handleTreeRequest(char* receiver_ip, uint16_t receiver_port){
+void BlueNode::handleTreeRequest(char* ip, uint16_t port){
   size_t msg_size;
   if(my_data.node_id == 0 || tree_member){ //root node or member of tree, affirmative anser.
     f_join_tree_y yes_ans;
     msg_size = sizeof(f_join_tree_y);
     yes_ans.type = 12;
     yes_ans.node_id = my_data.node_id;
-    sudp.sendTo((char*)&yes_ans,msg_size,receiver_ip,receiver_port);
+    sudp.sendTo((char*)&yes_ans,msg_size,ip,port);
   } else { //not root nor a part of tree yet,negative answer.
     f_join_tree_n no_ans;
     msg_size = sizeof(f_join_tree_n);
     no_ans.type = 18;
     no_ans.node_id = my_data.node_id;
-    sudp.sendTo((char*)&no_ans,msg_size,receiver_ip,receiver_port);
+    sudp.sendTo((char*)&no_ans,msg_size,ip,port);
   }
 }
 
 /**
-*
-*
+* @brief This function handles the arrival of an anwer to the join tree request(type 12 or 18).
+* @param ans_map map<node_id,answer_frame> containing the answers from all neighbours.
+* @return true if still receiving answer frames from neighbours, false if all answers have been received.
 */
 bool BlueNode::handleTreeRequestAnswer(std::map<uint16_t,f_join_tree> *ans_map){
+  bool receiving = true;
   if(neighbours.size() == ans_map->size()){ //answer received from all graph neighbours, stop receiving.
-    for(auto itr = ans_map->begin(); itr != ans_map->end(); itr++){
-      /*
-      if(getType(itr->second.type) == 12){ //found the parent node
-        //set parent data.
+    for(auto &itr : *ans_map){
+      if(itr.second.type == 12){ //found the parent node
+        parent_data = neighbours[itr.second.node_id];
+        //generate the parent frame and send it.
+        f_parent parent_msg;
+        parent_msg.type = 13;
+        parent_msg.node_id = parent_data.node_id;
+        sudp.sendTo((char*)&parent_msg,sizeof(f_parent),parent_data.node_ip,parent_data.node_port);
         tree_member = true;
+        break; //found the parent with lowest id, stop iterating.
       }
-      */
-
     }
-    return false;
+    receiving = false;
   }
   //else return true, still receiving answers from neighbours.
-  return true;
+  return receiving;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////Thread Functions////////////////////////////////////////////
 
-/*
-* The receiver thread acts as a dispatcher redirecting the messages it
-* receives to the appropiate queue.
+/**
+* @brief Function for the receiver thread. The receiver thread acts as a dispatcher
+*        redirecting the messages it receives to the appropiate queue.
 */
 void BlueNode::receiver(){
   uint8_t type;
   std::pair<char*,uint16_t> sender_data;
-  char buffer[F_PAYLOAD_CAP];
   while(true){
+    char* buffer = new char[F_PAYLOAD_CAP];
     sender_data = sudp.receive(buffer);
     type = getType(buffer);
     switch(type){
       //Received from green/blue node.
-      //Blue-green thread will handle it.
+      //green-blue thread will handle it.
       case 0:
       case 1:
       case 2:
@@ -260,40 +267,110 @@ void BlueNode::receiver(){
       case 12:
       case 13:
       case 18:
-        //push message intro blue-green queue.
-        //Let blue-green request thread handle.
+        {
+          std::unique_lock<std::mutex> gblck(gb_mtx); //lock the green-blue condition variable.
+
+          gb_lock.lock(); //lock the green-blue queue.
+          gb_queue.push(buffer);
+          gb_lock.unlock(); //release the green-blue queue.
+
+          gblck.unlock(); //release the cv.
+          gb_cv.notify_one();
+        }
         break;
       case 14:
       case 15:
       case 16:
       case 17:
-        //push message into orange queue.
-        //Let the orange requests thread handle.
-        break;
+        {
+          std::unique_lock<std::mutex> olck(orange_mtx); //lock the orange condition variable.
 
+          orange_lock.lock(); //lock orange queue.
+          orange_queue.push(buffer);
+          orange_lock.unlock(); //release orange queue.
+
+          olck.unlock(); //release the orange cv.
+          orange_cv.notify_one();
+        }
+        break;
       default:
         //Invalid frame type.
+        //add message to log file.
         break;
     }
   }
 }
 
-/*
-* Function for the orange handler thread.
-* This thread is in charge of anything related with the orange controller.
+/**
+* @brief Function for the orange requests thread.
+*        This thread is in charge of anything related with the orange controller.
 */
 void BlueNode::orangeRequests(){
+  char* buffer;
+  uint8_t type;
   while(true){
+    //thread blocks until the orange queue isn't empty
+    std::unique_lock<std::mutex> olck(orange_mtx);
+    orange_cv.wait(olck,[&]{return !orange_queue.empty();});
 
+    orange_lock.lock(); //lock the queue
+    buffer = orange_queue.front();
+    orange_queue.pop();
+    orange_lock.unlock(); //release the queue
+
+    type = getType(buffer);
+    switch(type){
+      default:
+        //wrong type somehow
+        //add message to log file.
+        break;
+    }
+    delete buffer;
+    buffer = nullptr;
   }
 }
 
-/*
-* Blue-Green requests thread.
-* This thread handles the requests/data of green and blue nodes.
+/**
+* @brief Function for the green-blue requests thread.
+*        This thread handles the requests/data of green and blue nodes.
 */
 void BlueNode::gbRequests(){
-  while(true){
+  char* buffer;
+  uint8_t type;
+  node_data sender_data;
 
+  while(true){
+    //thread blocks until the green-blue queue isn't empty
+    std::unique_lock<std::mutex> gblck(gb_mtx);
+    gb_cv.wait(gblck,[&]{return !gb_queue.empty();});
+
+    gb_lock.lock(); //lock the queue
+    buffer = gb_queue.front();
+    gb_queue.pop();
+    gb_lock.unlock(); //release the queue
+
+    type = getType(buffer);
+    switch(type){
+      case 11: //request to join spanning tree from another node.
+        {
+          f_join_tree *current_msg = (f_join_tree*) buffer;
+          sender_data = neighbours[current_msg->node_id];
+          handleTreeRequest(sender_data.node_ip,sender_data.node_port);
+        }
+        break;
+      case 13: //parent notification, add sender to children list.
+        {
+          f_join_tree *current_msg = (f_join_tree*) buffer;
+          sender_data = neighbours[current_msg->node_id];
+          addChildNode(sender_data.node_ip,sender_data.node_port,sender_data.node_id);
+        }
+        break;
+      default:
+        //wrong type somehow, add message to log file.
+        break;
+
+    }
+    delete buffer;
+    buffer = nullptr;
   }
 }
