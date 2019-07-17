@@ -4,15 +4,20 @@
 #include <map>
 #include <string.h>
 #include <queue>
+#include <mutex>
+#include <condition_variable>
+
+#include "frames.h"
 #include "sudp.h"
 
 
 /*
 * Keeps track of the IP and port of a node.
 */
-struct n_data{
-  char* n_ip;
-  uint16_t n_port;
+struct node_data{
+  char* node_ip;
+  uint16_t node_port;
+  uint16_t node_id;
 };
 
 
@@ -21,30 +26,50 @@ public:
   BlueNode(char *, uint16_t , char*);
   ~BlueNode();
 
+
+  //Utility routines
   char* getIP();
   uint16_t getPort();
   void start();
 
 private:
-    n_data my_data;
-    n_data server_data;
-    uint16_t n_id; // this node's id.
+    node_data my_data;
+    node_data server_data;
+    bool tree_member;
 
     SecureUDP sudp = decltype(sudp)(1000);
-    std::map<uint16_t,n_data> neighbours; //graph neighbours.
-    std::map<uint16_t,n_data> t_neighbours; // spanning tree neighbours.
-    void joinGraph();
+    std::mutex orange_mtx; //for the cv.
+    std::mutex gb_mtx; //for the cv.
+    std::mutex orange_lock; //lock for the orange buffer.
+    std::mutex gb_lock; //lock for the green-blue buffer.
+    std::condition_variable orange_cv;
+    std::condition_variable gb_cv;
+
+
+    std::map<uint16_t,node_data> neighbours; //graph neighbours.
+    node_data parent_data; //parent data for the spanning tree.
+    std::map<uint16_t,node_data> child_nodes; // spanning tree child nodes.
+    std::queue<char*> orange_queue; //orange buffer.
+    std::queue<char*> gb_queue; //green-blue buffer.
+
+    //Utility routines.
     uint8_t getType(char*);
 
-    void sendHello(uint16_t myID,n_data neighbour);
+    //Orange-related routines.
+    void sendHello(uint16_t myID,node_data neighbour);
     void waitForComplete();
+    void joinGraph();
+
+    //Spanning Tree routines
+    void joinTree();
+    void addChildNode(char*,uint16_t,uint16_t);
+    void handleTreeRequest(char*,uint16_t);
+    bool handleTreeRequestAnswer(std::map<uint16_t,f_join_tree>*);
 
     //Thread routines.
     void receiver();
     void orangeRequests();
-    void bgRequests(); //blue-green requests.
-
-
+    void gbRequests(); //blue-green requests.
 };
 
 #endif

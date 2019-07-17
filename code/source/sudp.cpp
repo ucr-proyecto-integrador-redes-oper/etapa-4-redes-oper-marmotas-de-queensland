@@ -8,12 +8,12 @@
 #include <string>
 
 
-/*
-*  Constructor for the SecureUDP class that receives a specific port to bind
+/**
+*  @brief Constructor for the SecureUDP class that receives a specific port to bind
 *  and a wait time in ms for the sender thread. It's the user's responsability to
 *  send a valid port and wait time numbers.
-*  args: uint16_t port and uint32_t wait time in ms.
-*  ret: --
+*  @param port uint16_t with the port
+*  @param wait_time uint32_t with the wait_time in ms.
 */
 SecureUDP::SecureUDP(uint16_t port,uint32_t wait_time){
   this->port = port;
@@ -23,12 +23,11 @@ SecureUDP::SecureUDP(uint16_t port,uint32_t wait_time){
   start();
 }
 
-/*
-*  Constructor for the SecureUDP class that receives a wait time in ms. Since
+/**
+*  @brief Constructor for the SecureUDP class that receives a wait time in ms. Since
 *  no port is specified the OS will search for any available port to bind.
 *  It's the user's responsability to send a valid wait time as input.
-*  args: Wait time in ms, port is assigned automatically.
-*  ret: --
+*  @param wait_time uint32_t with the wait time in ms.
 */
 SecureUDP::SecureUDP(uint32_t wait_time){
   setSocket();
@@ -37,8 +36,8 @@ SecureUDP::SecureUDP(uint32_t wait_time){
   start();
 }
 
-/*
-  Destructor for the SecureUDP class
+/**
+* @brief Destructor for the SecureUDP class
 */
 SecureUDP::~SecureUDP(){
 
