@@ -6,10 +6,14 @@
 #include <queue>
 #include <mutex>
 #include <condition_variable>
+#include <thread>
+#include <chrono>
+#include <utility>
 
 #include "frames.h"
 #include "sudp.h"
 
+#define MY_UINT16_MAX (UINT16_MAX-1)
 
 /*
 * Keeps track of the IP and port of a node.
@@ -36,6 +40,7 @@ private:
     node_data my_data;
     node_data server_data;
     bool tree_member;
+    bool received_complete;
 
     SecureUDP sudp = decltype(sudp)(1000);
     std::mutex orange_mtx; //for the cv.
@@ -59,6 +64,8 @@ private:
     void sendHello(uint16_t myID,node_data neighbour);
     void waitForComplete();
     void joinGraph();
+    void receivePos(char* buffer);
+    void receivePosWNeighbour(char* buffer);
 
     //Spanning Tree routines
     void joinTree();

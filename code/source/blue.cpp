@@ -1,16 +1,13 @@
-#include <thread>
-#include <chrono>
-#include <utility>
 #include "blue.h"
-
-
 
 BlueNode::BlueNode(char* server_ip,uint16_t server_port, char* my_ip){
   //sets server info.
   tree_member = false;
+  received_complete = false;
   server_data.node_ip = server_ip;
   server_data.node_port = server_port;
   my_data.node_ip = my_ip;
+  my_data.node_id = 0;
 }
 
 BlueNode::~BlueNode(){
@@ -79,7 +76,52 @@ void BlueNode::start(){
 ///////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////Orange comm related functions//////////////////////////////
 
+/*
+* Effect: Receives node's assigned position and non-instantiated neighbours' ids
+* Requires: For a packet w type 15 to have been received by node
+* Modifies: neighbours map
+ */
+void BlueNode::receivePos(char* buffer){
+  f_graph_pos position;
+  memcpy((char*)& position, buffer, sizeof(position));
+  if((int)position.node_id != -1){
+    if(my_data.node_id == 0){ // Si es el primer paquete que se recibe, guardar mi id.
+      my_data.node_id = position.node_id;
+    }
+    node_data neighbour_data;
+    neighbour_data.node_ip = 0;
+    neighbour_data.node_port = 0;
+    neighbour_data.node_id = position.neighbor_id;
+    neighbours.emplace((uint16_t)position.neighbor_id, neighbour_data);
+  }
+  else{
+    exit(0);
+  }
+}
 
+/*
+* Effect: Receives node's assigned position and instantiated neighbours' ids and addresses
+* Requires: For a packet w type 16 to have been received by node
+* Modifies: neighbours map
+ */
+void BlueNode::receivePosWNeighbour(char* buffer){
+  f_graph_pos_i position;
+  memcpy((char*)& position, buffer, sizeof(position));
+  if((int)position.node_id != -1){
+    if(my_data.node_id == 0){ // Si es el primer paquete que se recibe, guardar mi id.
+      my_data.node_id = position.node_id;
+    }
+    node_data neighbour_data;
+    neighbour_data.node_ip = (char*)&position.neighbor_ip;
+    neighbour_data.node_port = position.neighbor_port;
+    neighbour_data.node_id = position.neighbor_id;
+    neighbours.emplace((uint16_t)position.neighbor_id, neighbour_data);
+    sendHello(my_data.node_id,neighbour_data); //Sends hello
+  }
+  else{
+    exit(0);
+  }
+}
 
 /*
 Effect: Sends hello message to neighbors
@@ -253,7 +295,7 @@ void BlueNode::receiver(){
       //Received from green/blue node.
       //green-blue thread will handle it.
       case 0:
-      case 1:
+      case 1: // Hello
       case 2:
       case 3:
       case 4:
@@ -279,8 +321,10 @@ void BlueNode::receiver(){
         }
         break;
       case 14:
-      case 15:
-      case 16:
+      case 15: // Receive pos (no neighbor id and port)
+        receivePos(buffer);
+      case 16: // Receive pos (w/ neighbor id and port)
+        receivePosWNeighbour(buffer);
       case 17:
         {
           std::unique_lock<std::mutex> olck(orange_mtx); //lock the orange condition variable.
