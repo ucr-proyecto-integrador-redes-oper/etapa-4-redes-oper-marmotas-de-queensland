@@ -10,17 +10,18 @@
 * @param portDer: puerto del nodo naranja derecha.
 * @return None.
 */
-Naranja::Naranja(int portNaranja,int cantidadAzules,short portAzul,string pathcsv,char* ipDer,short portDer){
+Naranja::Naranja(int portNaranja,int cantidadNaranjas,short portAzul,string pathcsv,char* ipDer,short portDer){
   //Iniciar socket para naranjas
   udpNaranjas = new UDP(portNaranja);
   //Iniciar socket para azules
   sudpAzules = new SecureUDP(portAzul,WAIT_SUDP);
-  this->cantidadAzules = cantidadAzules;
+  this->cantidadNaranjas = cantidadNaranjas;
   this->continuar = true;
   this->grafoCompleto = false;
   //bandera para el token,0 es que no lo tengo 1 si ya Llego
   //se utiliza para el timer.
   this->banderaToken = 0;
+  this->banderaCompleteAzules = false;
   this->grafoCompleto = false;
   this->cantidadCompletos = 0;
   this->token = 0;
@@ -49,6 +50,7 @@ Naranja::Naranja(int portNaranja,int cantidadAzules,short portAzul,string pathcs
   cout << "Creando thread para los azules." << endl;
 
   thread (&Naranja::recibirSolicitudAzul,this).detach();
+  thread (&Naranja::enviarCompleteAzules,this).detach();
 }
 
 /*
@@ -186,22 +188,28 @@ void Naranja::verificarPaquetes(){
         //enviar al nodo derecho el complete
         this->enviarComplete();
 
-        if(this->cantidadCompletos == 6)//si ya estan los complete
-          this->enviarCompleteAzules();//avisar a los azules
-
         break;
 
       case 3://recibo token vacio
         // cout << "Se recibio token vacio" << endl;
-
         if(this->token)
           cv.notify_one();//avisa al thread que recibio token
+
+        if(grafo->NumClear() == 0 && !this->grafoCompleto){
+          cout << "Ya no hay campo en el grafo, enviando complete a naranjas." << endl;
+          this->enviarComplete();
+          cout << "Esperando complete" << endl;
+          this->udpNaranjas->receive((char*)&complete,sizeof(pack_complete));
+          cout << "Llego complete" << endl;
+          this->grafoCompleto = true;
+          ++cantidadCompletos;
+        }
 
         this->banderaToken = 1;
         if(this->solicitudes.empty()){//si no hay solicitudes
           // cout << "No hay solicitudes de nodo azul, enviando token vacio." << endl;
           this->enviarTokenVacio();//envie token vacio
-          break;//se hace el break dentro del if para que pase al case 4
+          break;//se hace el break dentro del if para que no pase al case 4
           //en caso de que hayan solicitudes
         }
 
@@ -212,13 +220,8 @@ void Naranja::verificarPaquetes(){
           this->ocuparNodoGrafo();
           //enviarSolicitud(solicitud);
         }
-        if(grafo->NumClear() == 0 && !this->grafoCompleto){
-          cout << "Ya no hay campo en el grafo, enviando complete a naranjas." << endl;
-          this->enviarComplete();
-          this->grafoCompleto = true;
-          ++cantidadCompletos;
-        }
         // cout << "Enviando token vacio." << endl;
+
         this->enviarTokenVacio();//envie token vacio luego de realizar una solicitud
 
         break;
@@ -375,7 +378,7 @@ ip_converter.cargarIPInvertido(info_client.first, &addrInvertido);
 */
 void Naranja::guardarSolicitud(pack_solicitud nuevaSolicitud){
   //guardarlo en la cola
-  cout << "Guardando solicitud en cola." << endl;
+  // cout << "Guardando solicitud en cola." << endl;
   solicitudes.push(nuevaSolicitud);
 }
 
@@ -387,6 +390,7 @@ void Naranja::guardarSolicitud(pack_solicitud nuevaSolicitud){
 //para el sig metodo ocupo algo para almacenar los nodos ocupados
 //al recibir una solicitud, la escribo en este metodo
 void Naranja::ocuparNodoGrafo(){
+  // cout << "Ingreso a ocuparNodoGrafo." << endl;
   //Desencola de lista de solicitudes
   cout << "Sacando solicitud de cola." << endl;
   pack_solicitud nuevaSolicitud = solicitudes.front();
@@ -401,11 +405,11 @@ void Naranja::ocuparNodoGrafo(){
   //Si el grafo está incompleto
   if(!grafoCompleto){
     //Asigna en mapa de bits
-    cout << "Buscando campo en el bitmap de grafo." << endl;
+    // cout << "Buscando campo en el bitmap de grafo." << endl;
     int id = grafo->Find();
     if(id != -1){
       marcarNodoGrafo(id);
-      cout << "Marcando id en el bitmap de mis azules." << endl;
+      // cout << "Marcando id en el bitmap de mis azules." << endl;
       misAzules->Mark(id);
       //Se acepta solicitud
       nuevaSolicitud.idNodo = id;
@@ -417,9 +421,10 @@ void Naranja::ocuparNodoGrafo(){
   }
   //Si mi paquete fue aceptado
   if(aceptado){
-    vector <int> vecinos = obtener_vecinos(nuevaSolicitud.idNodo, pathcsv);
+    // cout << "Solicitud fue aceptada." << endl;
+    vector<int> vecinos = obtener_vecinos(nuevaSolicitud.idNodo, pathcsv);
     //Si tengo ips de Vecinos
-    if(vecinos[1] == -1){//Si no tiene vecinos
+    if(vecinos.size() == 1){//Si no tiene vecinos
       enviarPosicion(vecinos,ipAzul,nuevaSolicitud.portAzul);
     }
     else{//Si tiene vecinos
@@ -428,13 +433,15 @@ void Naranja::ocuparNodoGrafo(){
     }
   }
   else{
+    // cout << "Solicitud no fue aceptada." << endl;
     //Se rechaza solicitud
     nuevaSolicitud.idNodo = -1;
     vector <int> vecinos = vector <int>();
-    vecinos[0] = -1;
+    vecinos.push_back(nuevaSolicitud.idNodo);
     enviarPosicion(vecinos,ipAzul,nuevaSolicitud.portAzul);
   }
   // delete ipAzul;
+  // cout << "Salio de ocuparNodoGrafo." << endl;
 }
 
 /*
@@ -444,7 +451,7 @@ void Naranja::ocuparNodoGrafo(){
 */
 void Naranja::marcarNodoGrafo(int id){
   //Asigna en mapa de bits
-  cout << "Marcando id: "<< id << " en el bitmap del grafo." << endl;
+  // cout << "Marcando id: "<< id << " en el bitmap del grafo." << endl;
   grafo->Mark(id);
   //Se acepta solicitud
 }
@@ -456,10 +463,11 @@ void Naranja::marcarNodoGrafo(int id){
 * @return vector<int> vecinos_nodo: vector que contiene los vecinos.
 */
 vector<int> Naranja::obtener_vecinos(int nodo, string &path){
+  // cout << "Ingreso a obtener_vecinos." << endl;
   vector <int> vecinos_nodo;
   ifstream csvFile;
   csvFile.open(path, ifstream::in);
-  cout << "Sacando vecinos del nodo azul: " << nodo << " del archivo: "<<path << endl;
+  // cout << "Sacando vecinos del nodo azul: " << nodo << " del archivo: "<<path << endl;
   if(!csvFile.is_open()){
     exit(EXIT_FAILURE);
   }
@@ -472,6 +480,7 @@ vector<int> Naranja::obtener_vecinos(int nodo, string &path){
       // std::getline(registro, primerValor, ',');
       for (std::string dato; std::getline(registro, dato, ','); ){
         vecino = dato[0]-'0';
+        // cout << "vecino encontrado: " << vecino << endl;
         if(vecino >= 0)
           vecinos_nodo.push_back(vecino);
       }
@@ -480,6 +489,7 @@ vector<int> Naranja::obtener_vecinos(int nodo, string &path){
   if(vecinos_nodo.size()==1)
     vecinos_nodo.push_back(-1);
 
+  // cout << "Salio de obtener_vecinos." << endl;
   return vecinos_nodo;
 }
 
@@ -494,17 +504,19 @@ vector<int> Naranja::obtener_vecinos(int nodo, string &path){
 * @return None.
 */
 void Naranja::enviarPosicion(vector<int> vecinos_nodo,char* ipEnvio, uint16_t puertoEnvio){
+  // cout << "Ingreso a enviarPosicion." << endl;
   int i = 1;
   while(i < vecinos_nodo.size() && vecinos_nodo[i] >= 0){
-    cout << "Leyendo vecino: " << vecinos_nodo[i] << endl;
+    // cout << "Leyendo vecino: " << vecinos_nodo[i] << endl;
     f_graph_pos pos_nodo;
     pos_nodo.node_id = (uint16_t)vecinos_nodo[0];
     pos_nodo.neighbor_id = (uint16_t)vecinos_nodo[i];
     //enviar paquete
-    cout << "Enviando paquete con solamente id vecino al azul." << endl;
+    // cout << "Enviando paquete con solamente id vecino al azul." << endl;
     this->sudpAzules->sendTo((char*)&pos_nodo, sizeof(pos_nodo),ipEnvio,puertoEnvio);
     i++;
   }
+  // cout << "Salio de enviarPosicion." << endl;
 }
 
 /*
@@ -516,12 +528,13 @@ void Naranja::enviarPosicion(vector<int> vecinos_nodo,char* ipEnvio, uint16_t pu
 * @return None.
 */
 void Naranja::enviarPosConVecino(vector<int> vecinos_nodo,char* ipEnvio, uint16_t puertoEnvio){
+  // cout << "Ingreso a enviarPosConVecino." << endl;
   IPConverter ip_converter;
   int i = 1;
   while(i < vecinos_nodo.size() && vecinos_nodo[i] >= 0){
-    cout << "Leyendo vecino: " << vecinos_nodo[i] << endl;
+    // cout << "Leyendo vecino: " << vecinos_nodo[i] << endl;
     if(misAzules->Test(vecinos_nodo[i])){ //vecino esta instanciado
-      cout << "Si esta instanciado: " << vecinos_nodo[i] << endl;
+      // cout << "Si esta instanciado: " << vecinos_nodo[i] << endl;
       f_graph_pos_i pos_nodo_vecino;
       pos_nodo_vecino.node_id = (uint16_t)vecinos_nodo[0];
       pos_nodo_vecino.neighbor_id = (uint16_t)vecinos_nodo[i];
@@ -533,8 +546,8 @@ void Naranja::enviarPosConVecino(vector<int> vecinos_nodo,char* ipEnvio, uint16_
       pos_nodo_vecino.neighbor_ip = addrInvertido.intValue;
       pos_nodo_vecino.neighbor_port = infoAzul.second;
       //enviar paquete
-      cout << "Enviando paquete con ip y puerto de vecino a azul." << endl;
-cout << "Ip: " << ipEnvio << " Port: " << puertoEnvio << endl;
+      // cout << "Enviando paquete con ip y puerto de vecino a azul." << endl;
+// cout << "Ip: " << ipEnvio << " Port: " << puertoEnvio << endl;
       this->sudpAzules->sendTo((char*)&pos_nodo_vecino, sizeof(pos_nodo_vecino),ipEnvio,puertoEnvio);
       delete infoAzul.first;
     }
@@ -543,12 +556,13 @@ cout << "Ip: " << ipEnvio << " Port: " << puertoEnvio << endl;
       pos_nodo.node_id = (uint16_t)vecinos_nodo[0];
       pos_nodo.neighbor_id = (uint16_t)vecinos_nodo[i];
       //enviar
-      cout << "Enviando paquete con solamente id vecino al azul." << endl;
-cout << "Ip: " << ipEnvio << " Port: " << puertoEnvio << endl;
+      // cout << "Enviando paquete con solamente id vecino al azul." << endl;
+// cout << "Ip: " << ipEnvio << " Port: " << puertoEnvio << endl;
       this->sudpAzules->sendTo((char*)&pos_nodo, sizeof(pos_nodo),ipEnvio,puertoEnvio);
     }
     i++;
   }
+  // cout << "Salio de enviarPosConVecino." << endl;
 }
 
 
@@ -558,23 +572,32 @@ cout << "Ip: " << ipEnvio << " Port: " << puertoEnvio << endl;
 * @param None.
 * @return None.
 */
-void Naranja::enviarCompleteAzules(){
-  if(grafoCompleto){
-    //Para cada nodo azul de mi lista
-    f_graph_complete grafoCompleto;
-    grafoCompleto.type = 17;
-    cout << "Avisando a mis azules que pueden comenzar." << endl;
-    for(int i = 0; i<this->misAzules->numBits;i++)
-    {
-      if(misAzules->Test(i))
+int Naranja::enviarCompleteAzules(){
+  while(true){
+    if(this->cantidadCompletos == cantidadNaranjas && !this->banderaCompleteAzules){
+      cout << "Enviando complete a azules." << endl;
+      this->banderaCompleteAzules = true;
+      //Para cada nodo azul de mi lista
+      f_graph_complete grafoCompleto;
+      grafoCompleto.type = 17;
+      // cout << "Avisando a mis azules que pueden comenzar." << endl;
+      for(int i = 0; i<this->misAzules->numBits;i++)
       {
-        pair<char*,uint16_t> infoAzul = obtenerIPPuertoNodoAzul(i);
-        //Envio paquete de complete.
-        this->sudpAzules->sendTo((char*)& grafoCompleto, sizeof(grafoCompleto),infoAzul.first,infoAzul.second);
-        delete infoAzul.first;
+        if(misAzules->Test(i))
+        {
+          pair<char*,uint16_t> infoAzul = obtenerIPPuertoNodoAzul(i);
+          //Envio paquete de complete.
+          this->sudpAzules->sendTo((char*)& grafoCompleto, sizeof(grafoCompleto),infoAzul.first,infoAzul.second);
+          delete infoAzul.first;
+        }
       }
     }
+    if(this->banderaCompleteAzules){
+      cout << "Thread de complete a azules terminando." << endl;
+      return 0;
+    }
   }
+  // cout << "Salio de enviarCompleteAzules." << endl;
 }
 
 ///Funciones para guardar datos de los azules
@@ -585,7 +608,7 @@ void Naranja::enviarCompleteAzules(){
 */
 void Naranja::limpiarArchivoDatosAzul(){
   ofstream myfile;
-  cout << "Limpiando archivo de azules." << endl;
+  // cout << "Limpiando archivo de azules." << endl;
   myfile.open ("listaIPSAzules.csv");
   myfile<<"";
   myfile.close();
@@ -599,11 +622,13 @@ void Naranja::limpiarArchivoDatosAzul(){
 * @param puerto: puerto del nodo.
 */
 void Naranja::agregarIPPuertoNodoAzul(int id, char* ip, uint16_t puerto){
+  // cout << "Ingreso a agregarIPPuertoNodoAzul." << endl;
   ofstream myfile;
-  cout << "Agregando ip y puerto al documento listaIPAzules.csv" << endl;
+  // cout << "Agregando ip y puerto al documento listaIPAzules.csv" << endl;
   myfile.open ("listaIPSAzules.csv",std::fstream::app);
   myfile <<id<<","<<ip<<","<<puerto<<"\n";
   myfile.close();
+  // cout << "Salio de agregarIPPuertoNodoAzul." << endl;
 }
 
 /*
@@ -612,13 +637,14 @@ void Naranja::agregarIPPuertoNodoAzul(int id, char* ip, uint16_t puerto){
 * @return None.
 */
 pair<char*,uint16_t>  Naranja::obtenerIPPuertoNodoAzul(int id){
+  // cout << "Ingreso a obtenerIPPuertoNodoAzul." << endl;
   bool found=false;
   std::pair<char*,uint16_t> nodoInfo;
   char* ipChar = new char[32];
   string idObtenida;
   string ip;
   string puerto;
-  cout << "Leyendo ip y puerto de un nodo azul del archivo csv." << endl;
+  // cout << "Leyendo ip y puerto de un nodo azul del archivo csv." << endl;
   fstream myfile("listaIPSAzules.csv");
   //Abre el archivo con la listas de ip
   if(!myfile.is_open())
@@ -645,5 +671,6 @@ pair<char*,uint16_t>  Naranja::obtenerIPPuertoNodoAzul(int id){
     }
   }
   myfile.close();
+  // cout << "Salio de obtenerIPPuertoNodoAzul." << endl;
   return  make_pair(ipChar,stoi(puerto));
 }

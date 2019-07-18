@@ -8,8 +8,8 @@ using namespace std;
 //g++ -o naranja *.cpp -std=c++11 -pthread *.cc
 
 int main(int argc, char* argv[]){
-  if(argc < 6){
-    cout << "Usage: portNaranja, cantidadAzules, portAzul, pathcsv, ipDer, portDer." << endl;
+  if(argc < 7){
+    cout << "Usage: portNaranja, cantidadNaranjas, portAzul, pathcsv, ipDer, portDer." << endl;
   }else{
     int portNaranja = atoi(argv[1]);
     int cantidadAzules = atoi(argv[2]);

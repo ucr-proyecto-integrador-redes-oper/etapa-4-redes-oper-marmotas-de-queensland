@@ -28,7 +28,7 @@
 #include "orange_frames.h"
 #include "ip_converter.h"
 ////////////
-#define WAIT_SUDP 2
+#define WAIT_SUDP 2000
 
 using namespace std;
 
@@ -45,9 +45,9 @@ private:
 	char* ipDer;
 	short portDer;
 
-	//cantidad azules que aguanta el naranja.
-	int cantidadAzules;
-
+	//cantidad de naranjas en el grafo.
+	int cantidadNaranjas;
+	bool banderaCompleteAzules;
 	bool continuar;
 	bool banderaComplete;
 
@@ -58,7 +58,7 @@ private:
 
 	//ports para naranjas y azules
 	UDP* udpNaranjas;
-	SecureUDP*  sudpAzules;
+	SecureUDP* sudpAzules;
 	//paquetes
 	struct pack_inicial inicial;
 	struct pack_solicitud solicitud;
@@ -111,7 +111,7 @@ public:
 	void marcarNodoGrafo(int id);//Marca en el bitmap el nodo id
 	void ocuparNodoGrafo(); //al recibir una solicitud, la escribo en este metodo
 	void enviarAsignado();
-	void enviarCompleteAzules();//envia un pack a los azules para que empiecen 17
+	int enviarCompleteAzules();//envia un pack a los azules para que empiecen 17
 	//Metodos para almacenar y obtener datos azules:
 	void limpiarArchivoDatosAzul() ;//Crea/limpia un archivo con datos del azules
 	void agregarIPPuertoNodoAzul(int id, char* ip, uint16_t puerto); //Agrega la IP a un archivo
