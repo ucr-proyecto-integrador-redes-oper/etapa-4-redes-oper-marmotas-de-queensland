@@ -1,3 +1,7 @@
+#include <thread>
+#include <chrono>
+#include <utility>
+
 #include "blue.h"
 
 BlueNode::BlueNode(char* server_ip,uint16_t server_port, char* my_ip){
@@ -322,9 +326,7 @@ void BlueNode::receiver(){
         break;
       case 14:
       case 15: // Receive pos (no neighbor id and port)
-        receivePos(buffer);
       case 16: // Receive pos (w/ neighbor id and port)
-        receivePosWNeighbour(buffer);
       case 17:
         {
           std::unique_lock<std::mutex> olck(orange_mtx); //lock the orange condition variable.
