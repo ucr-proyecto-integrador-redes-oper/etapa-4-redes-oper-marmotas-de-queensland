@@ -80,11 +80,12 @@ void BlueNode::start(){
 ///////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////Orange comm related functions//////////////////////////////
 
-/*
-* Effect: Receives node's assigned position and non-instantiated neighbours' ids
-* Requires: For a packet w type 15 to have been received by node
-* Modifies: neighbours map
- */
+
+/**
+* @brief Receives node's assigned position and instantiated neighbours' ids
+* @param Char* buffer containing packet w type 15 to have been received by node
+* @return --
+*/
 void BlueNode::receivePos(char* buffer){
   f_graph_pos position;
   memcpy((char*)& position, buffer, sizeof(position));
@@ -102,12 +103,11 @@ void BlueNode::receivePos(char* buffer){
     exit(0);
   }
 }
-
-/*
-* Effect: Receives node's assigned position and instantiated neighbours' ids and addresses
-* Requires: For a packet w type 16 to have been received by node
-* Modifies: neighbours map
- */
+/**
+* @brief Receives node's assigned position and instantiated neighbours' ids, ip and port
+* @param Char* buffer containing w type 15 to have been received by node
+* @return --
+*/
 void BlueNode::receivePosWNeighbour(char* buffer){
   f_graph_pos_i position;
   memcpy((char*)& position, buffer, sizeof(position));
@@ -127,10 +127,10 @@ void BlueNode::receivePosWNeighbour(char* buffer){
   }
 }
 
-/*
-Effect: Sends hello message to neighbors
-Requires: Map of Neighbors filled in.
-Modifies: --
+/**
+* @brief Sends a hello to a given neghbor
+* @param Blue Node ID to give neighbor, node_data with my neighbor IP/port
+* @return --
 */
 void BlueNode::sendHello(uint16_t myID,node_data neighbour){
   f_hello greeting;
@@ -140,26 +140,15 @@ void BlueNode::sendHello(uint16_t myID,node_data neighbour){
   sudp.sendTo((char*)& greeting, sizeof(greeting),neighbour.node_ip,neighbour.node_port);
 }
 
-/*
-NOTA: Qué pasa con los otros frames que recibe?.
-Effect: Waits until a correct complete message arrives
-Requires: --
-Modifies: --
-
-void BlueNode::waitForComplete(){
-  bool recievedComplete = false;
-  f_graph_complete completePack;
-  std::pair<char*,uint16_t> senderData;
-  while(!recievedComplete){
-    senderData=sudp.receive((char*)&completePack);
-    //Se acepta el paquete solo cuando el paquete es de tipo 17 y viene de la IP puerto registrada como mi naranja
-    if(completePack.type == 17&&strncmp(senderData.first,server_data.node_ip,sizeof(server_data.node_ip))
-    && senderData.second ==server_data.node_port){
-      recievedComplete = true;
-    }
-  }
-}
+/**
+* @brief Sets complete flag on, allowing for the next phase to begin
+* @param --
+* @return --
 */
+void BlueNode::recieveGraphComplete()
+{
+  received_complete = true;
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////Spanning tree related functions////////////////////////////
@@ -366,6 +355,19 @@ void BlueNode::orangeRequests(){
 
     type = getType(buffer);
     switch(type){
+
+      case 15:// Receive pos (no neighbor id and port)
+        receivePos(buffer);
+      break;
+
+      case 16:// Receive pos (w/ neighbor id and port)
+        receivePosWNeighbour(buffer);
+      break;
+
+      case 17: //Recieve a Graph complete
+        recieveGraphComplete();
+      break;
+
       default:
         //wrong type somehow
         //add message to log file.

@@ -66,6 +66,7 @@ private:
     void joinGraph();
     void receivePos(char* buffer);
     void receivePosWNeighbour(char* buffer);
+    void recieveGraphComplete();
 
     //Spanning Tree routines
     void joinTree();
