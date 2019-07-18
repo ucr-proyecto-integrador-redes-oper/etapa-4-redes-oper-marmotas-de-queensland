@@ -2,13 +2,10 @@
 #define BLUE_H_
 
 #include <map>
-#include <string.h>
 #include <queue>
 #include <mutex>
 #include <condition_variable>
-#include <thread>
-#include <chrono>
-#include <utility>
+#include <string.h>
 
 #include "frames.h"
 #include "sudp.h"
@@ -57,6 +54,9 @@ private:
     std::queue<char*> orange_queue; //orange buffer.
     std::queue<char*> gb_queue; //green-blue buffer.
 
+    //map with the ids of all 'owned' files and the # of chunks for each.
+    std::map<uint24_t,uint8_t> files;
+
     //Utility routines.
     uint8_t getType(char*);
 
@@ -72,6 +72,18 @@ private:
     void addChildNode(char*,uint16_t,uint16_t);
     void handleTreeRequest(char*,uint16_t);
     bool handleTreeRequestAnswer(std::map<uint16_t,f_join_tree>*);
+
+    //File handling routines
+    void handleChunkRequest(f_chunk*);
+    void handleExistsRequest(f_exists*);
+    void handleExistsRequestAnswer();
+    void handleCompleteRequest();
+    void handleCompleteRequestAnswer();
+    void handleGetRequest();
+    void handleGetRequestAnswer();
+    void handleLocateRequest();
+    void handleLocateRequestAnswer();
+    void handleDeleteRequest();
 
     //Thread routines.
     void receiver();

@@ -5,7 +5,10 @@
 
 
 
-
+/**
+* @brief This struct represents a 24bit unsigned integer.
+*
+*/
 struct uint24_t {
   unsigned int data : 24;
 }__attribute__((packed));

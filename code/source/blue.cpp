@@ -282,6 +282,34 @@ bool BlueNode::handleTreeRequestAnswer(std::map<uint16_t,f_join_tree> *ans_map){
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////File handling related functions////////////////////////
+
+
+void BlueNode::handleChunkRequest(f_chunk* current_msg){
+
+}
+
+void BlueNode::handleExistsRequest(f_exists* current_msg){}
+
+void BlueNode::handleExistsRequestAnswer(){}
+
+void BlueNode::handleCompleteRequest(){}
+
+void BlueNode::handleCompleteRequestAnswer(){}
+
+void BlueNode::handleGetRequest(){}
+
+void BlueNode::handleGetRequestAnswer(){}
+
+void BlueNode::handleLocateRequest(){}
+
+void BlueNode::handleLocateRequestAnswer(){}
+
+void BlueNode::handleDeleteRequest(){}
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////Thread Functions////////////////////////////////////////////
 
 /**
@@ -299,7 +327,7 @@ void BlueNode::receiver(){
       //Received from green/blue node.
       //green-blue thread will handle it.
       case 0:
-      case 1: // Hello
+      case 1:
       case 2:
       case 3:
       case 4:
@@ -397,6 +425,66 @@ void BlueNode::gbRequests(){
 
     type = getType(buffer);
     switch(type){
+      case 0: //Chunk request from another node.
+        {
+          f_chunk* current_msg =  (f_chunk*) buffer;
+          handleChunkRequest(current_msg);
+        }
+        break;
+      case 2: //Exists request from another node.
+        {
+          f_exists* current_msg = (f_exists*) buffer;
+          handleExistsRequest(current_msg);
+        }
+        break;
+      case 3: //Answer to this node's exists request
+        {
+          f_exists_ans* current_msg = (f_exists_ans*) buffer;
+          handleExistsRequestAnswer();
+        }
+        break;
+      case 4: // Complete request from another node.
+        {
+          f_complete* current_msg = (f_complete*) buffer;
+          handleCompleteRequest();
+        }
+        break;
+      case 5: //Answer to this node's complete request.
+        {
+          f_complete_ans* current_msg = (f_complete_ans*) buffer;
+          handleCompleteRequestAnswer();
+        }
+        break;
+      case 6: //Get request from another node.
+        {
+          f_get* current_msg = (f_get*) buffer;
+          handleGetRequest();
+        }
+        break;
+      case 7: //Answer to this node's get request.
+        {
+          f_get_ans* current_msg = (f_get_ans*) buffer;
+          handleGetRequestAnswer();
+        }
+        break;
+      case 8: //Locate request from another node.
+        {
+          f_locate* current_msg = (f_locate*) buffer;
+          handleLocateRequest();
+        }
+        break;
+      case 9: //Answer to this node's locate request.
+        {
+          f_locate_ans* current_msg = (f_locate_ans*) buffer;
+          handleLocateRequestAnswer();
+        }
+        break;
+      case 10: //Delete request from another node.
+        {
+          f_delete* current_msg = (f_delete*) buffer;
+          handleDeleteRequest();
+        }
+        break;
       case 11: //request to join spanning tree from another node.
         {
           f_join_tree *current_msg = (f_join_tree*) buffer;
@@ -414,7 +502,6 @@ void BlueNode::gbRequests(){
       default:
         //wrong type somehow, add message to log file.
         break;
-
     }
     delete buffer;
     buffer = nullptr;
