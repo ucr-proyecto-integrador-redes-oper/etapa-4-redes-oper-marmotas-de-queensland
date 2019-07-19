@@ -1,29 +1,37 @@
 #include "orange_udp.h"
 
-/*
-  Constructor for the UDP class
+/**
+* @brief Constructor para la clase UDP, inicializa un socket llamando al metodo setSocket.
+* @param int port: puerto a ser inicialiado.
+* @return None.
 */
 UDP::UDP(int port){
   this->port = port;
   setSocket();
 }
 
-/*
-  Destructor for the UDP class
+/**
+* @brief Destructor de la clase UDP. Realiza close al socket creado.
+* @param None.
+* @return None.
 */
 UDP::~UDP(){
    close(sock_fd);
 }
 
-/*
-  Returns last client's port
+/**
+* @brief Metodo que retorna el puerto del ultimo cliente del cual recibio un paquete.
+* @param None.
+* @return uint16_t: Puerto, de 16bits de largo, del ultimo cliente.
 */
 uint16_t UDP::getPortClient(){
   return this->clientData.port;
 }
 
-/*
-  Returns last client's IP address
+/**
+* @brief Metodo que retorna la del ultimo cliente del cual recibio un paquete.
+* @param None.
+* @return Char*: IP del cliente en formato char.
 */
 char* UDP::getIpClient(){
   return inet_ntoa(this->clientData.addr);
@@ -31,6 +39,14 @@ char* UDP::getIpClient(){
 
 /*
   Send msg buffer of size to ip and port
+*/
+/**
+* @brief Metodo que envia un mensaje a otro socket.
+* @param data: un puntero que indica el inicio del data a ser enviado.
+* @param size: la cantidad de bytes del data.
+* @param ip: la IP destino del paquete.
+* @param port: el puerto destino del paquete.
+* @return None.
 */
 void UDP::sendTo(char* data,int size, char* ip, uint16_t port){
   sockaddr_in dest_addr;
@@ -51,6 +67,12 @@ void UDP::sendTo(char* data,int size, char* ip, uint16_t port){
 /*
   Receive Msg and save it in buffer
 */
+/**
+* @brief Metodo que recibe un paquete, es almacenado en buffer.
+* @param buffer: puntero que indica el inicio de memoria donde se comienzan a escribir los datos.
+* @param size: cantidad de bytes a ser escritos en memoria.
+* @return None.
+*/
 void UDP::receive(char* buffer,int size){
    sockaddr_in src_addr;
    socklen_t sz = sizeof(src_addr);
@@ -63,7 +85,11 @@ void UDP::receive(char* buffer,int size){
 }
 
 /////////////////////////////////Private functions//////////////////////////////////////////
-
+/**
+* @brief Metodo que crea y hace bind a un socket con el puerto definido como atributo.
+* @param None.
+* @return None.
+*/
 void UDP::setSocket(){
   // Creating socket file descriptor , UDP
   if ( (sock_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {

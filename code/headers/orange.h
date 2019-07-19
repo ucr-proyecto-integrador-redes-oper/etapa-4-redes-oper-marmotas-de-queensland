@@ -59,7 +59,7 @@ private:
 	//ports para naranjas y azules
 	UDP* udpNaranjas;
 	SecureUDP* sudpAzules;
-	
+
 	//paquetes
 	struct pack_inicial inicial;
 	struct pack_solicitud solicitud;
@@ -111,7 +111,6 @@ public:
 	//para el sig metodo ocupo algo para almacenar los nodos ocupados
 	void marcarNodoGrafo(int id);//Marca en el bitmap el nodo id
 	void ocuparNodoGrafo(); //al recibir una solicitud, la escribo en este metodo
-	void enviarAsignado();
 	int enviarCompleteAzules();//envia un pack a los azules para que empiecen 17
 	//Metodos para almacenar y obtener datos azules:
 	void limpiarArchivoDatosAzul() ;//Crea/limpia un archivo con datos del azules

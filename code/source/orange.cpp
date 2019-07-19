@@ -383,13 +383,11 @@ void Naranja::guardarSolicitud(pack_solicitud nuevaSolicitud){
   solicitudes.push(nuevaSolicitud);
 }
 
-/*
+/**
 * @brief Asigna un número en el grafo a un nodo azul.
 * @param None.
 * @return None.
 */
-//para el sig metodo ocupo algo para almacenar los nodos ocupados
-//al recibir una solicitud, la escribo en este metodo
 void Naranja::ocuparNodoGrafo(){
   // cout << "Ingreso a ocuparNodoGrafo." << endl;
   //Desencola de lista de solicitudes
