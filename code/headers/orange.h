@@ -59,6 +59,7 @@ private:
 	//ports para naranjas y azules
 	UDP* udpNaranjas;
 	SecureUDP* sudpAzules;
+	
 	//paquetes
 	struct pack_inicial inicial;
 	struct pack_solicitud solicitud;

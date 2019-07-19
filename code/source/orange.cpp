@@ -1,6 +1,6 @@
 #include "orange.h"
 
-/*
+/**
 * @brief Constructor de la clase Naranja
 * @param portNaranja: puerto de comunicacion con otros naranjas.
 * @param cantidadAzules: cantidad total de azules que recibira el naranja.
@@ -15,6 +15,7 @@ Naranja::Naranja(int portNaranja,int cantidadNaranjas,short portAzul,string path
   udpNaranjas = new UDP(portNaranja);
   //Iniciar socket para azules
   sudpAzules = new SecureUDP(portAzul,WAIT_SUDP);
+
   this->cantidadNaranjas = cantidadNaranjas;
   this->continuar = true;
   this->grafoCompleto = false;
@@ -53,7 +54,7 @@ Naranja::Naranja(int portNaranja,int cantidadNaranjas,short portAzul,string path
   thread (&Naranja::enviarCompleteAzules,this).detach();
 }
 
-/*
+/**
 * @brief Destructor del Naranja.
 * @param None.
 * @return None.
@@ -66,7 +67,7 @@ Naranja::~Naranja(){
 }
 
 //funcionamiento interno:
-/*
+/**
 * @brief Metodo que cuenta la cantidad de nodos del grafo, utiliza el csv.
 * @param path: Csv del grafo del cual cuenta los nodos.
 * @return line_count: Cantidad de nodos en el grafo.
@@ -87,7 +88,7 @@ int Naranja::count_Lines(string &path){
   return line_count;
 }
 
-/*
+/**
 * @brief Inicia el funcionamiento inicial del naranja.
 * @param None.
 * @return None.
@@ -102,7 +103,7 @@ void Naranja::iniciar(){
 }
 
 //este metodo debe ser ejecutado con un thread para verificar el timeout
-/*
+/**
 * @brief Metodo de timer, se utiliza para esperar por el token en caso de que este se pierda.
 * @param None.
 * @return int 0.
@@ -115,7 +116,7 @@ int Naranja::timeout(){
   }
 }
 
-/*
+/**
 * @brief Verifica si mi ip es la menor entre todos los naranjas.
 * @param None.
 * @return int menor: 1 si mi ip es la menor, 0 si no es la menor.
@@ -129,7 +130,7 @@ int Naranja::verificarNaranjas(){
   return menor;
 }
 
-/*
+/**
 * @brief crea el token, modificando el atributo token.
 * @param None.
 * @return None.
@@ -140,7 +141,7 @@ void Naranja::crearToken(){
   this->banderaToken = 1;
 }
 
-/*
+/**
 * @brief Contiene un switch para analizar los diferentes paquetes.
 * @param None.
 * @return None.
@@ -236,7 +237,7 @@ void Naranja::verificarPaquetes(){
 //arreglar bug
 //con el de Roger , el debe enviar primero
 //con el de lucho yo debo enviar primero
-/*
+/**
 * @brief Envia el paquete inicial, recibe paquetes iniciales de otros naranjas.
 * Cada inicial de otro naranja se almacena en el vector para luego ser comparados.
 * @param None.
@@ -287,7 +288,7 @@ void Naranja::enviarInicial(){
   }
 }
 
-/*
+/**
 * @brief Envia solicitud a los otros naranjas.
 * @param solicitud: la solicitud que se va a enviar.
 * @return None.
@@ -304,7 +305,7 @@ void Naranja::enviarSolicitud(pack_solicitud solicitud){
   this->udpNaranjas->receive((char*)&solicitud,sizeof(solicitud));
 }
 
-/*
+/**
 * @brief Envia el token vacio a los otros naranjas.
 * Ademas crea un thread para el timer, solamente si el naranja creo el token.
 * @param None.
@@ -320,7 +321,7 @@ void Naranja::enviarTokenVacio(){
   }
 }
 
-/*
+/**
 * @brief Envia un paquete de que ya el naranja completo sus azules.
 * @param None.
 * @return None.
@@ -333,7 +334,7 @@ void Naranja::enviarComplete(){
 }
 
 //Cosas de azules:
-/*
+/**
 * @brief Recibe un mensaje de un azul por Secure udp y lo encola.
 * @param None.
 * @return None.
@@ -371,7 +372,7 @@ ip_converter.cargarIPInvertido(info_client.first, &addrInvertido);
   }
 }
 
-/*
+/**
 * @brief guarda en la cola de solicitudes las solicitudes de los azules.
 * @param nuevaSolicitud: solicitud del azul.
 * @return None.
@@ -444,7 +445,7 @@ void Naranja::ocuparNodoGrafo(){
   // cout << "Salio de ocuparNodoGrafo." << endl;
 }
 
-/*
+/**
 * @brief Marca el nodo ocupado en bitmap grafo.
 * @param id: recibido o asigado previamente.
 * @return None.
@@ -456,7 +457,7 @@ void Naranja::marcarNodoGrafo(int id){
   //Se acepta solicitud
 }
 
-/*
+/**
 * @brief Obtiene los vecinos de un nodo del grafo a partir del csv.
 * @param nodo: id del nodo a buscar en el csv.
 * @param path: csv de donde buscara los vecinos del nodo.
@@ -472,17 +473,24 @@ vector<int> Naranja::obtener_vecinos(int nodo, string &path){
     exit(EXIT_FAILURE);
   }
   int vecino = -1;
+  int ultimo = -1;
   string primerValor;
   for (std::string linea; std::getline(csvFile, linea); ){
     std::stringstream registro(linea);
-    if(linea[0]-'0' == nodo){
+    registro >> vecino;
+    if(vecino == nodo){
       //se salta el primero, ya que es el mismo nodo.
       // std::getline(registro, primerValor, ',');
       for (std::string dato; std::getline(registro, dato, ','); ){
-        vecino = dato[0]-'0';
+        // vecino = dato-'0';
+        std::stringstream registro2(dato);
+        registro2 >> vecino;
         // cout << "vecino encontrado: " << vecino << endl;
-        if(vecino >= 0)
+        if(vecino >= 0 && vecino != ultimo){
+          ultimo = vecino;
+          cout << "Guardando vecino: " << vecino << endl;
           vecinos_nodo.push_back(vecino);
+        }
       }
     }
   }
@@ -495,7 +503,7 @@ vector<int> Naranja::obtener_vecinos(int nodo, string &path){
 
 
 
-/*
+/**
 * @brief Envia al azul su posición en el grafo. Cuando sus vecinos no necesariamente estan instanciados.
 * Numero paquete = 15
 * @param vector<int> vecinos_nodo: vector con los vecinos del nodo.
@@ -519,7 +527,7 @@ void Naranja::enviarPosicion(vector<int> vecinos_nodo,char* ipEnvio, uint16_t pu
   // cout << "Salio de enviarPosicion." << endl;
 }
 
-/*
+/**
 * @brief Envia al azul su posición en grafo y una lista de vecinos y sus direcciones y puertos
 * si estan instanciados. Numero paquete = 16
 * @param vector<int> vecinos_nodo: vector con los vecinos del nodo.
@@ -567,7 +575,7 @@ void Naranja::enviarPosConVecino(vector<int> vecinos_nodo,char* ipEnvio, uint16_
 
 
 
-/*
+/**
 * @brief Envia paquete indicando completitud del grafo. Numero paquete = 17
 * @param None.
 * @return None.
@@ -601,7 +609,7 @@ int Naranja::enviarCompleteAzules(){
 }
 
 ///Funciones para guardar datos de los azules
-/*
+/**
 * @brief Limpia el archivo listaIPAzules.csv o lo crea si no existe
 * @param None.
 * @return None.
@@ -614,7 +622,7 @@ void Naranja::limpiarArchivoDatosAzul(){
   myfile.close();
 }
 
-/*
+/**
 * @brief Apende una nueva linea al archivo de listaIPSAzules,
 * Agrega una nueva linea al archivo con las ips y puertos.
 * @param id: Una id única para nodo.
@@ -631,7 +639,7 @@ void Naranja::agregarIPPuertoNodoAzul(int id, char* ip, uint16_t puerto){
   // cout << "Salio de agregarIPPuertoNodoAzul." << endl;
 }
 
-/*
+/**
 * @brief Obtiene la ip de un nodo agregado a la listaIPSAzules
 * @param id pasada por parámetro exista en el archivo y eliminar el puntero con delete al dejar de usarse afuera.
 * @return None.
@@ -656,7 +664,6 @@ pair<char*,uint16_t>  Naranja::obtenerIPPuertoNodoAzul(int id){
     //Itera por el archivo buscando el nodo y lo devuelve
     while(myfile.good() && !found)
     {
-
       getline(myfile,idObtenida,',');
       getline(myfile,ip,',');
       getline(myfile,puerto,'\n');
