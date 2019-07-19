@@ -171,7 +171,7 @@ void BlueNode::recieveGraphComplete()
 * be received during this tree generation phase.
 */
 void BlueNode::joinTree(){
-  if(my_data.node_id = 0){ //already a part of tree
+  if(my_data.node_id == 1){ //already a part of tree
     tree_member = true;
   } else {
       f_join_tree join_msg;
