@@ -171,47 +171,51 @@ void BlueNode::recieveGraphComplete()
 * be received during this tree generation phase.
 */
 void BlueNode::joinTree(){
-  f_join_tree join_msg;
-  join_msg.type = 11;
-  join_msg.node_id = my_data.node_id; //my id
-  size_t size = sizeof(f_join_tree);
-  bool receiving = true;
-  std::map<uint16_t,f_join_tree> ans_map;
-  std::pair<char*,uint16_t> sender_data;
-  uint8_t type;
+  if(my_data.node_id = 0){ //already a part of tree
+    tree_member = true;
+  } else {
+      f_join_tree join_msg;
+      join_msg.type = 11;
+      join_msg.node_id = my_data.node_id; //my id
+      size_t size = sizeof(f_join_tree);
+      bool receiving = true;
+      std::map<uint16_t,f_join_tree> ans_map;
+      std::pair<char*,uint16_t> sender_data;
+      uint8_t type;
 
-  while(!tree_member){
-    //sends join message to all neighbours
-    for(auto &itr: neighbours){
-      sudp.sendTo((char*)& join_msg,size, itr.second.node_ip,itr.second.node_port);
-    }
+      while(!tree_member){
+        //sends join message to all neighbours
+        for(auto &itr: neighbours){
+          sudp.sendTo((char*)& join_msg,size, itr.second.node_ip,itr.second.node_port);
+        }
 
-    while(receiving){
-      f_join_tree buffer;
-      sender_data = sudp.receive((char*)&buffer);
-      type = getType((char*)&buffer);
-      switch(type){
-        case 11: //join tree request from neighbour
-          handleTreeRequest(sender_data.first,sender_data.second);
-          break;
-        case 12: //answer to this node's request.
-        case 18:
-          ans_map[buffer.node_id] = buffer; //adds the answer to the answer list(map).
-          receiving = handleTreeRequestAnswer(&ans_map);
-          break;
-        case 13: //parent notification, add sender to children list.
-          addChildNode(sender_data.first,sender_data.second,buffer.node_id);
-          break;
-        default: // invalid type.
-          //add log message here.
-          break;
-      }
-    } //end-while(receiving)
-    if(!tree_member){ //no neighbour is in spanning tree yet, wait and try again.
-      ans_map.clear();
-      std::this_thread::sleep_for(std::chrono::milliseconds(1500));
-    }
-  } //end-while(!tree_member)
+        while(receiving){
+          f_join_tree buffer;
+          sender_data = sudp.receive((char*)&buffer);
+          type = getType((char*)&buffer);
+          switch(type){
+            case 11: //join tree request from neighbour
+              handleTreeRequest(sender_data.first,sender_data.second);
+              break;
+            case 12: //answer to this node's request.
+            case 18:
+              ans_map[buffer.node_id] = buffer; //adds the answer to the answer list(map).
+              receiving = handleTreeRequestAnswer(&ans_map);
+              break;
+            case 13: //parent notification, add sender to children list.
+              addChildNode(sender_data.first,sender_data.second,buffer.node_id);
+              break;
+            default: // invalid type.
+              //add log message here.
+              break;
+          }
+        } //end-while(receiving)
+        if(!tree_member){ //no neighbour is in spanning tree yet, wait and try again.
+          ans_map.clear();
+          std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+        }
+      } //end-while(!tree_member)
+  }
 }
 
 
@@ -238,7 +242,7 @@ void BlueNode::addChildNode(char* ip, uint16_t port, uint16_t node_id){
 */
 void BlueNode::handleTreeRequest(char* ip, uint16_t port){
   size_t msg_size;
-  if(my_data.node_id == 0 || tree_member){ //root node or member of tree, affirmative anser.
+  if(tree_member){ //member of tree, affirmative anser.
     f_join_tree_y yes_ans;
     msg_size = sizeof(f_join_tree_y);
     yes_ans.type = 12;

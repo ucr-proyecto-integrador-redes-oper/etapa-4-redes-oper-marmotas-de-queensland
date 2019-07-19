@@ -79,7 +79,8 @@ private:
     void handleTreeRequest(char*,uint16_t);
     bool handleTreeRequestAnswer(std::map<uint16_t,f_join_tree>*);
 
-    //File handling routines
+    //File handling routines7	44	33	8	42	29	16	37	43	48
+
     void handleChunkRequest(f_chunk*);
     void handleExistsRequest(f_exists*);
     void handleExistsRequestAnswer();
