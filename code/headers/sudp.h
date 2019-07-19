@@ -18,18 +18,16 @@
 #define PAYLOAD_CAP 1032
 #define SN_CAP 0xFFFF
 
-/*
-  Struct for the Secure Udp frame encapsulation.
-  Types: 0 ---> sender/receiver
-         1 ---> ack
+/**
+* @brief  Struct for the Secure Udp frame encapsulation.
+*         Types: 0 ---> sender/receiver
+*         1 ---> ack
 */
-//#pragma pack(push,1)
 struct sudp_frame{
   uint8_t type; //1 byte type
   uint16_t sn; // 2 bytes sn
   char payload[PAYLOAD_CAP]; //1kb payload + blue header
 }__attribute__((packed));
-//#pragma pack(pop)
 
 /*
   Struct for the receiver data.
@@ -44,19 +42,16 @@ struct sudp_rdata{
 
 /*
   Struct for the map value associated with a sn key.
-*/
-//#pragma pack(push,1)
+*/ 
 struct smap_value{
   sudp_frame *frame;
   sudp_rdata *rdata;
   size_t msg_size;
 }__attribute__((packed));
-//#pragma pack(pop)
 
-
-/*
-*  Class for a semi-reliable UDP communication. It guarantees message arrival but not
-*  the order in which the message arrives.
+/**
+* @brief Class for a semi-reliable UDP communication. It guarantees message arrival but not
+*        the order in which the message arrives. It allows some frame repetition when the ack message gets lost.
 */
 class SecureUDP{
   public:

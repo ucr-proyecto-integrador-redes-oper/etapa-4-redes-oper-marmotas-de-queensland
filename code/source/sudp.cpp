@@ -45,14 +45,13 @@ SecureUDP::~SecureUDP(){
 
 
 
-/*
-* Encapsulates the data in a SecureUPD header and adds it to the send map.
-* The data has a cap of 1032 bytes.
-* args: char* with the data to send.
-*       size_t size of the data about to send.
-*       char* with the receiver IP address.
-*       uint16_t with the receiver port.
-* ret: --
+/**
+* @brief Encapsulates the data in a SecureUPD header and adds it to the send map.
+*        The data has a cap of 1032 bytes.
+* @param char* with the data to send.
+* @param size_t size of the data about to send.
+* @param char* with the receiver IP address.
+* @param uint16_t with the receiver port.
 */
 void SecureUDP::sendTo(char* data, size_t sz,char* r_ip, uint16_t r_port){
   sudp_frame* curr_frame = new sudp_frame();
@@ -82,20 +81,19 @@ void SecureUDP::sendTo(char* data, size_t sz,char* r_ip, uint16_t r_port){
   sn = sn % SN_CAP;
 }
 
-/*
-* Returns the port binded to the SecureUDP instance.
-* args: --
-* ret: uint16_t with the port number.
+/**
+* @brief Getter function for the binded port.
+* @return uint16_t with the port number.
 */
 uint16_t SecureUDP::getPort(){
   return port;
 }
 
-/*
-* The receive function copies the memory into the buffer passed as parameter.
-* Buffer size has a cap of 1032 bytes.
-* args: char* where the sent data will be copied.
-* ret: std::pair<char*,uint16_t> with the IP and port of the sender.
+/**
+* @brief The receive function copies the memory into the buffer passed as parameter.
+*        Buffer size has a cap of 1032 bytes.
+* @param buffer char* where the sent data will be copied.
+* @return std::pair<char*,uint16_t> with the IP and port of the sender.
 */
 std::pair<char*,uint16_t> SecureUDP::receive(char* buffer){
   std::pair<sudp_frame*,sudp_rdata*> frame_info;
@@ -123,12 +121,11 @@ std::pair<char*,uint16_t> SecureUDP::receive(char* buffer){
 
 /////////////////////////////////Private functions//////////////////////////////////////////
 
-/*
-* setSocket receives a port as parameter and binds the socket to the specified port.
-* If the socket or bind functions fail the program exits. It's the user's responsability
-* to send a valid port number.
-* agrs: uint16_t with the port to bind.
-* ret: --
+/**
+* @brief setSocket receives a port as parameter and binds the socket to the specified port.
+*        If the socket or bind functions fail the program exits. It's the user's responsability
+*        to send a valid port number.
+* @param uint16_t with the port to bind.
 */
 void SecureUDP::setSocket(uint16_t port){
   // Creating socket file descriptor , UDP
@@ -150,10 +147,8 @@ void SecureUDP::setSocket(uint16_t port){
 
 }
 
-/*
-* setSocket instantiates and binds the socket to any available port on the system.
-* args: --
-* ret: --
+/**
+* @brief setSocket instantiates and binds the socket to any available port on the system.
 */
 void SecureUDP::setSocket(){
   // Creating socket file descriptor , UDP
@@ -180,12 +175,10 @@ void SecureUDP::setSocket(){
 }
 
 
-/*
-* Function for the sender thread. The thread will loop and try to send
-* the messages in map evey wait_time in ms. Thread execution will stop when
-* the caller process finishes.
-* args: --
-* ret: --
+/**
+* @brief Function for the sender thread. The thread will loop and try to send
+*        the messages in map evey wait_time in ms. Thread execution will stop when
+*        the caller process finishes.
 */
 void SecureUDP::sender(){
   sudp_frame *curr_frame;
@@ -216,8 +209,9 @@ void SecureUDP::sender(){
   }
 
 
-/*
-* Function for the receiver thread.
+/**
+* @brief This is the function for the receiver thread.
+*        Its job is to receive messages from the OS buffer constantly.
 */
   void SecureUDP::receiver(){
     sockaddr_in src_addr;
@@ -245,10 +239,9 @@ void SecureUDP::sender(){
     }
   }
 
-/*
-* Function for the processor thread.
-* args: --
-* ret: --
+/**
+* @brief The processor thread decides what to do with the frames it receives.
+*        Messages are queued by the receiver and poped by this thread.
 */
 void SecureUDP::processor(){
   sudp_frame *curr_frame;
@@ -308,11 +301,9 @@ void SecureUDP::processor(){
   }
 }
 
-/*
-* The start routine instiates the threads and detaches them from the parent
-* process. The threads execution stops when the caller process does.
-* args: --
-* ret: --
+/**
+* @brief The start routine instiates the threads and detaches them from the parent
+*        process. The threads execution stops when the caller process does.
 */
 void SecureUDP::start(){
   std::thread s(&SecureUDP::sender,this);

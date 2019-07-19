@@ -5,15 +5,14 @@
 #include <queue>
 #include <mutex>
 #include <condition_variable>
-#include <string.h>
 
 #include "frames.h"
 #include "sudp.h"
 
 #define MY_UINT16_MAX (UINT16_MAX-1)
 
-/*
-* Keeps track of the IP and port of a node.
+/**
+* @brief Keeps track of the IP and port of a node.
 */
 struct node_data{
   char* node_ip;
@@ -21,7 +20,14 @@ struct node_data{
   uint16_t node_id;
 };
 
+inline bool operator<(const uint24_t& a, const uint24_t& b) {return a < b;}
 
+/**
+* @brief The BlueNode class allows the generation of nodes to handle all the data chunks.
+*        When a BlueNode is instantiated it will send a request to the associated orange controller
+*        to become a part of the graph. The blue nodes will also generate a spanning tree among themselves when the
+*        graph is finished.
+*/
 class BlueNode{
 public:
   BlueNode(char *, uint16_t , char*);
@@ -46,7 +52,6 @@ private:
     std::mutex gb_lock; //lock for the green-blue buffer.
     std::condition_variable orange_cv;
     std::condition_variable gb_cv;
-
 
     std::map<uint16_t,node_data> neighbours; //graph neighbours.
     node_data parent_data; //parent data for the spanning tree.

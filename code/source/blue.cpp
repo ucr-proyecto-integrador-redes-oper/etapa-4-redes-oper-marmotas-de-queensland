@@ -1,9 +1,17 @@
 #include <thread>
 #include <chrono>
 #include <utility>
+#include <sstream>
+#include <cstring>
 
 #include "blue.h"
 
+/**
+* @brief BlueNode constructor
+* @param server_ip char* with this node's associated orange controller IP.
+* @param server_port uint16_t with this node's associated orange controller port.
+* @param my_ip char* with the node's IP.
+*/
 BlueNode::BlueNode(char* server_ip,uint16_t server_port, char* my_ip){
   //sets server info.
   tree_member = false;
@@ -14,6 +22,9 @@ BlueNode::BlueNode(char* server_ip,uint16_t server_port, char* my_ip){
   my_data.node_id = 0;
 }
 
+/**
+* @brief BlueNode destructor
+*/
 BlueNode::~BlueNode(){
 
 }
@@ -22,7 +33,8 @@ BlueNode::~BlueNode(){
 //////////////////////////////////////Utility functions///////////////////////////////////
 
 /**
-*
+* @brief getter function for the node's IP.
+* @return node_ip char* with the node's IP.
 */
 char* BlueNode::getIP(){
   return my_data.node_ip;
@@ -30,8 +42,7 @@ char* BlueNode::getIP(){
 
 /**
 * @brief Returns the port that was binded by the node.
-* @param --
-* @return --
+* @return port associated with this node's instance of secure udp.
 */
 uint16_t BlueNode::getPort(){
   return sudp.getPort();
@@ -50,9 +61,7 @@ uint8_t BlueNode::getType(char* data_source){
 }
 
 /**
-* The joinGraph function requests a logical graph asignation from the orange server.
-* args: --
-* ret: --
+* @brief The joinGraph function requests a logical graph asignation from the orange server.
 */
 void BlueNode::joinGraph(){
   f_join_graph frame;
@@ -62,8 +71,10 @@ void BlueNode::joinGraph(){
 }
 
 
-/*
-*
+/**
+* @brief The start function sets up the node by doing two things.
+*        First, it guarantees that the node will join the graph when this is called.
+*        Second, it guarantees that the first level of the spanning tree will be generated.
 */
 void BlueNode::start(){
   my_data.node_port = getPort();
@@ -158,8 +169,6 @@ void BlueNode::recieveGraphComplete()
 * @brief The joinTree function generates the first level of the spanning tree. The other levels
 * should be generated automatically by the green-blue handler thread. No other message type should
 * be received during this tree generation phase.
-* @param --
-* @return --
 */
 void BlueNode::joinTree(){
   f_join_tree join_msg;
@@ -273,27 +282,65 @@ bool BlueNode::handleTreeRequestAnswer(std::map<uint16_t,f_join_tree> *ans_map){
 ///////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////File handling related functions////////////////////////
 
-
+/**
+* @brief This function handles the behavior when a node receives a chunk from a file.
+* @param current_msg fchunk* with the data about to be handled.
+*/
 void BlueNode::handleChunkRequest(f_chunk* current_msg){
-
+  uint24_t file_id = current_msg->file_id;
+  if(files.count(current_msg->file_id)){ //Node already has chunks from file stored.
+    //check for chunk cap
+    //gen probabilities, etc.
+  } else { //it's a chunk from a new file
+    files[current_msg->file_id] = 1; //add it to map
+    //create file and write chunk
+    //send it to neighbour to copy the data.
+  }
 }
 
+/**
+* @brief
+*/
 void BlueNode::handleExistsRequest(f_exists* current_msg){}
 
+/**
+* @brief
+*/
 void BlueNode::handleExistsRequestAnswer(){}
 
+/**
+* @brief
+*/
 void BlueNode::handleCompleteRequest(){}
 
+/**
+* @brief
+*/
 void BlueNode::handleCompleteRequestAnswer(){}
 
+/**
+* @brief
+*/
 void BlueNode::handleGetRequest(){}
 
+/**
+* @brief
+*/
 void BlueNode::handleGetRequestAnswer(){}
 
+/**
+* @brief
+*/
 void BlueNode::handleLocateRequest(){}
 
+/**
+* @brief
+*/
 void BlueNode::handleLocateRequestAnswer(){}
 
+/**
+* @brief
+*/
 void BlueNode::handleDeleteRequest(){}
 
 
