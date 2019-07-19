@@ -3,6 +3,7 @@
 #include <utility>
 #include <sstream>
 #include <cstring>
+#include <fstream>
 
 #include "blue.h"
 
@@ -20,6 +21,7 @@ BlueNode::BlueNode(char* server_ip,uint16_t server_port, char* my_ip){
   server_data.node_port = server_port;
   my_data.node_ip = my_ip;
   my_data.node_id = 0;
+  files_path  = "../data/";
 }
 
 /**
@@ -182,7 +184,7 @@ void BlueNode::joinTree(){
       std::map<uint16_t,f_join_tree> ans_map;
       std::pair<char*,uint16_t> sender_data;
       uint8_t type;
-
+      char recv_buffer[F_PAYLOAD_CAP];
       while(!tree_member){
         //sends join message to all neighbours
         for(auto &itr: neighbours){
@@ -190,8 +192,11 @@ void BlueNode::joinTree(){
         }
 
         while(receiving){
+
           f_join_tree buffer;
-          sender_data = sudp.receive((char*)&buffer);
+          //char* buffer;
+          sender_data = sudp.receive(recv_buffer);
+          memcpy((char*)&buffer,recv_buffer,sizeof(f_join_tree));
           type = getType((char*)&buffer);
           switch(type){
             case 11: //join tree request from neighbour
@@ -291,14 +296,23 @@ bool BlueNode::handleTreeRequestAnswer(std::map<uint16_t,f_join_tree> *ans_map){
 * @param current_msg fchunk* with the data about to be handled.
 */
 void BlueNode::handleChunkRequest(f_chunk* current_msg){
-  uint24_t file_id = current_msg->file_id;
-  if(files.count(current_msg->file_id)){ //Node already has chunks from file stored.
+  uint24_t current_file_id = current_msg->file_id;
+  std::stringstream file;
+  file << files_path << current_file_id.data << ".dat";
+  if(files.count(current_file_id)){ //Node already has chunks from file stored.
     //check for chunk cap
     //gen probabilities, etc.
   } else { //it's a chunk from a new file
-    files[current_msg->file_id] = 1; //add it to map
-    //create file and write chunk
+    files[current_file_id] = 1; //add it to map
+
+    //generates the file and writes the data chunk.
+    std::fstream current_file_stream;
+    current_file_stream.open(file.str(), std::ios::in | std::ios::binary | std::ios::app);
+    current_file_stream.write((char*)current_msg,sizeof(f_chunk));
+    current_file_stream.close();
+
     //send it to neighbour to copy the data.
+    //sudp.sendTo();
   }
 }
 

@@ -5,11 +5,13 @@
 #include <queue>
 #include <mutex>
 #include <condition_variable>
+#include <string>
 
 #include "frames.h"
 #include "sudp.h"
 
 #define MY_UINT16_MAX (UINT16_MAX-1)
+#define CHUNK_CAP 40
 
 /**
 * @brief Keeps track of the IP and port of a node.
@@ -61,6 +63,7 @@ private:
 
     //map with the ids of all 'owned' files and the # of chunks for each.
     std::map<uint24_t,uint8_t> files;
+    std::string files_path;
 
     //Utility routines.
     uint8_t getType(char*);
