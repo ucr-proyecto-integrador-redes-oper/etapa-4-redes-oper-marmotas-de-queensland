@@ -342,6 +342,7 @@ void Naranja::enviarComplete(){
 void Naranja::recibirSolicitudAzul(){
   //char buffer[7];
   struct f_join_graph join;
+  char buffer[F_PAYLOAD_CAP];
   pair<char*,uint16_t> info_client; //IP y puerto de azul solicitante
   while(true){
     // cout << "Estado actual de bitMaps:" << endl;
@@ -350,7 +351,8 @@ void Naranja::recibirSolicitudAzul(){
     // misAzules->Print();
     // cout << endl;
     cout << "Recibiendo solicitudes de azul." << endl;
-    info_client = this->sudpAzules->receive((char*)&join);
+    info_client = this->sudpAzules->receive(buffer);
+    memcpy((char*)&join,buffer,sizeof(f_join_graph));
 
     cout << "Se recibio solicitud de azul." << endl;
     if(!grafoCompleto && join.type == 14/*(strcmp(buffer, "14") == 0)*/) // Si el grafo esta incompleto y es una solicitud f_join_graph
