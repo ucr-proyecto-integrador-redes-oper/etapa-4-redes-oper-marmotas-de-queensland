@@ -44,8 +44,8 @@ Naranja::Naranja(int portNaranja,int cantidadNaranjas,short portAzul,string path
   this->pathcsv = pathcsv ;
   count_Lines(pathcsv);
   cout << line_count << endl;
-  grafo = new BitMap(line_count); //CAMBIAR LUEGO: inicializar con n lineas CSV
-  misAzules = new BitMap(line_count); //CAMBIAR LUEGO: inicializar con n lineas CSV
+  grafo = new BitMap(line_count+1); //CAMBIAR LUEGO: inicializar con n lineas CSV
+  misAzules = new BitMap(line_count+1); //CAMBIAR LUEGO: inicializar con n lineas CSV
 
 
   //crea thread que atiende socket para azules.
@@ -148,7 +148,7 @@ void Naranja::crearToken(){
 * @return None.
 */
 void Naranja::verificarPaquetes(){
-  cout << "Recibiendo paquetes" << endl;
+  cout << "Recibiendo paquetes" << endl<< endl;
   char* ipAzulcorrecto;
   int id = 5;
   if(this->token)
@@ -173,7 +173,7 @@ void Naranja::verificarPaquetes(){
         cout << "Se recibio una solicitud de otro nodo naranja." << endl;
         cout << "Id solicitado: " << solicitud.idNodo << endl;
         cout << "Ip del nodo: " << solicitud.ipAzul << endl;
-        cout << "Port del nodo: " << solicitud.portAzul << endl;
+        cout << "Port del nodo: " << solicitud.portAzul << endl<< endl;
         //guardar solicitud recibida
         in_addr ipEnInt;
         ipEnInt.s_addr = solicitud.ipAzul;
@@ -185,7 +185,7 @@ void Naranja::verificarPaquetes(){
         break;
 
       case 2://recibo complete
-        cout << "Un servidor naranja completo sus azules." << endl;
+        cout << "Un servidor naranja completo sus azules." << endl<< endl;
         ++cantidadCompletos;
         //enviar al nodo derecho el complete
         this->enviarComplete();
@@ -197,7 +197,7 @@ void Naranja::verificarPaquetes(){
         if(this->token)
           cv.notify_one();//avisa al thread que recibio token
 
-        if(grafo->NumClear() == 0 && !this->grafoCompleto){
+        if(grafo->NumClear() == 1 && !this->grafoCompleto){
           cout << "Ya no hay campo en el grafo, enviando complete a naranjas." << endl;
           this->enviarComplete();
           cout << "Esperando complete" << endl;
@@ -264,7 +264,7 @@ void Naranja::enviarInicial(){
     memcpy((char*)&otroIp,(char*)&inicial.ip,4);
     //cout << "Se recibio id: " << inicial.id << "con ip: " << inicial.ip << endl;
     if(inicial.ip == this->miIp){
-      cout << "Llego un pack mio" << endl;
+      // cout << "Llego un pack mio" << endl;
       miIp = true;
       yaEsta = true;
       ++misPaquetes;
@@ -300,7 +300,7 @@ void Naranja::enviarSolicitud(pack_solicitud solicitud){
   //memcpy((char*)&solicitud,(char*)&solicitudes.front(),sizeof(solicitud));
   //solicitud.id = 1; pasar a memcpy
   //se envia solicitud al nodo naranja derecho
-  cout << "Enviando solicitud de un azul a los naranjas." << endl;
+  cout << "Enviando solicitud de un azul a los naranjas." << endl<< endl;
   this->udpNaranjas->sendTo((char*)&solicitud,sizeof(solicitud),ipDer,portDer);
   //falta recibirla se recibe del izq.
   this->udpNaranjas->receive((char*)&solicitud,sizeof(solicitud));
@@ -366,7 +366,7 @@ void Naranja::recibirSolicitudAzul(){
 ip_converter.cargarIPInvertido(info_client.first, &addrInvertido);
       //ip_converter.printIP(&addrInvertido);
 
-      cout << "Guardando ip y puerto de azul." << endl;
+      cout << "Guardando ip y puerto de azul." << endl<< endl;
       nuevaSolicitud.ipAzul = addrInvertido.intValue;
       nuevaSolicitud.portAzul = info_client.second;
       // Se encola paquete
@@ -455,8 +455,9 @@ void Naranja::ocuparNodoGrafo(){
 */
 void Naranja::marcarNodoGrafo(int id){
   //Asigna en mapa de bits
-  cout << "Marcando id: "<< id << " en el bitmap del grafo." << endl;
-  grafo->Mark(id-1);
+  --id;
+  // cout << "Marcando id: "<< id << " en el bitmap del grafo." << endl;
+  grafo->Mark(id);
   //Se acepta solicitud
 }
 
@@ -491,7 +492,7 @@ vector<int> Naranja::obtener_vecinos(int nodo, string &path){
         // cout << "vecino encontrado: " << vecino << endl;
         if(vecino >= 0 && vecino != ultimo){
           ultimo = vecino;
-          cout << "Guardando vecino: " << vecino << endl;
+          // cout << "Guardando vecino: " << vecino << endl;
           vecinos_nodo.push_back(vecino);
         }
       }
@@ -525,6 +526,7 @@ void Naranja::enviarPosicion(vector<int> vecinos_nodo,char* ipEnvio, uint16_t pu
     pos_nodo.neighbor_id = (uint16_t)vecinos_nodo[i];
     //enviar paquete
     // cout << "Enviando paquete con solamente id vecino al azul." << endl;
+    cout << "Enviando pack con solo id a : " << pos_nodo.node_id << " con vecino id: " << pos_nodo.neighbor_id << endl;
     this->sudpAzules->sendTo((char*)&pos_nodo, sizeof(pos_nodo),ipEnvio,puertoEnvio);
     i++;
   }
@@ -545,13 +547,15 @@ void Naranja::enviarPosConVecino(vector<int> vecinos_nodo,char* ipEnvio, uint16_
   int i = 1;
   while(i < vecinos_nodo.size() && vecinos_nodo[i] > 0){
     // cout << "Leyendo vecino: " << vecinos_nodo[i] << endl;
-    if(misAzules->Test(vecinos_nodo[i])){ //vecino esta instanciado
+    if(grafo->Test(vecinos_nodo[i])){ //vecino esta instanciado
       // cout << "Si esta instanciado: " << vecinos_nodo[i] << endl;
       f_graph_pos_i pos_nodo_vecino;
       pos_nodo_vecino.node_id = (uint16_t)vecinos_nodo[0];
       pos_nodo_vecino.neighbor_id = (uint16_t)vecinos_nodo[i];
       pair<char*,uint16_t> infoAzul = obtenerIPPuertoNodoAzul(vecinos_nodo[i]);
-      ip_converter.cargarIP(infoAzul.first, &addrInvertido);
+      // ip_converter.cargarIP(infoAzul.first, &addrInvertido);
+
+      ip_converter.cargarIPInvertido(infoAzul.first, &addrInvertido);
 
       //ip_converter.cargarIPInvertido(infoAzul.first, &addrInvertido);
       pos_nodo_vecino.type = 16;
@@ -560,8 +564,10 @@ void Naranja::enviarPosConVecino(vector<int> vecinos_nodo,char* ipEnvio, uint16_
       //enviar paquete
       cout << "Enviando paquete con ip y puerto de vecino a azul." << endl;
 // cout << "Ip: " << ipEnvio << " Port: " << puertoEnvio << endl;
+cout << "Id vecino del nodo: "<< pos_nodo_vecino.node_id <<" creado: " << pos_nodo_vecino.neighbor_id << endl;
+
       this->sudpAzules->sendTo((char*)&pos_nodo_vecino, sizeof(pos_nodo_vecino),ipEnvio,puertoEnvio);
-      delete infoAzul.first;
+       delete infoAzul.first;
     }
     else{ // vecino no esta instanciado
       f_graph_pos pos_nodo;
