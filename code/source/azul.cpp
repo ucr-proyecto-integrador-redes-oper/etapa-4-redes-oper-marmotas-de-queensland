@@ -69,7 +69,6 @@ void Azul::recibirVecinos(){
   memcpy((char*)&vecino_info,buffer,sizeof(vecino_info));
 
   miId = vecino_info.node_id;
-  // menorVecino = 65537;
   // cout << "Soy el nodo: " << miId << " con puerto: " << sudp->getPort() <<endl<< endl;
 
   //por si se rechazo la solicitud
@@ -90,9 +89,6 @@ void Azul::recibirVecinos(){
         vecino_data.node_id = vecino_info.neighbor_id;
         vecinos[vecino_data.node_id] = vecino_data;
 
-        // if(vecino_data.node_id < menorVecino)
-        //   this->menorVecino = vecino_data.node_id;
-
         // cout << "Recibiendo vecino no instanciado" << endl;
         // cout << "Nodo vecino id: "<< vecino_data.node_id << endl<< endl;
 
@@ -104,9 +100,6 @@ void Azul::recibirVecinos(){
         vecino_data.node_port = vecino_info.neighbor_port;
         vecino_data.node_id = vecino_info.neighbor_id;
         vecinos[vecino_data.node_id] = vecino_data;
-
-        // if(vecino_data.node_id < menorVecino)
-        //   this->menorVecino = vecino_data.node_id;
 
         // cout << "Recibiendo vecino instanciado" << endl;
         // cout << "Nodo vecino id: "<< vecino_data.node_id << endl;
@@ -197,7 +190,7 @@ void Azul::recibirSolicitudesTree(){
       // cout << "El nodo: " << hijo_data.node_id << " escogio como padre a : " << miId << endl;
       agregarHijoArbol(hijo_data);
 
-    }else if(!soyParteArbol && hijo_info.type == 12 /*&& this->menorVecino == hijo_info.node_id*/){
+    }else if(!soyParteArbol && hijo_info.type == 12){
       //mi menor vecino pertenece al arbol.
       enviarDaddy(sender_data);
 
@@ -232,6 +225,7 @@ void Azul::timeout(){
   std::unique_lock<std::mutex> mutex(m);
   if(cv.wait_for(mutex, 30s) == std::cv_status::timeout){
     // cout << "Timeout: Terminando el nodo: "<< this->miId << endl;
+    this->imprimirVecinos();
     this->imprimirHijos();
     continuar = false;
     exit(0);
@@ -248,6 +242,16 @@ void Azul::imprimirHijos(){
   hijos << "Hijos de nodo " << this->miId << " son: ";
   // cout << "Hijos de nodo " << this->miId << " son: " << endl;
   for (std::map<uint16_t,node_data>::iterator it=hijosArbol.begin(); it!=hijosArbol.end(); ++it)
+    hijos << it->second.node_id << " , ";
+
+  cout<< hijos.str() << endl;
+}
+
+void Azul::imprimirVecinos(){
+  stringstream hijos;
+  hijos << "Vecinos del nodo " << this->miId << " son: ";
+  // cout << "Hijos de nodo " << this->miId << " son: " << endl;
+  for (std::map<uint16_t,node_data>::iterator it=vecinos.begin(); it!=vecinos.end(); ++it)
     hijos << it->second.node_id << " , ";
 
   cout<< hijos.str() << endl;

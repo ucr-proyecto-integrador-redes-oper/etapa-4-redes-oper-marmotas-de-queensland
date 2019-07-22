@@ -31,7 +31,7 @@ private:
   char* ipNaranja;
   int portNaranja;
   int miId;
-  // unsigned int menorVecino;
+
   bool aceptado;
   map<uint16_t,node_data> vecinos;
 
@@ -61,6 +61,7 @@ public:
   void enviarDaddy(pair<char*,uint16_t>);
   void timeout();
   void imprimirHijos();
+  void imprimirVecinos();
 };
 
 #endif
