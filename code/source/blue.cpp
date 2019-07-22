@@ -4,9 +4,10 @@
 #include <sstream>
 #include <cstring>
 #include <fstream>
+#include <iostream>
 
 #include "blue.h"
-
+using namespace std;
 /**
 * @brief BlueNode constructor
 * @param server_ip char* with this node's associated orange controller IP.
@@ -175,7 +176,8 @@ void BlueNode::recieveGraphComplete()
 void BlueNode::joinTree(){
   if(my_data.node_id == 1){ //already a part of tree
     tree_member = true;
-  } else {
+  }
+  else {
       f_join_tree join_msg;
       join_msg.type = 11;
       join_msg.node_id = my_data.node_id; //my id
@@ -185,25 +187,34 @@ void BlueNode::joinTree(){
       std::pair<char*,uint16_t> sender_data;
       uint8_t type;
       char recv_buffer[F_PAYLOAD_CAP];
-      while(!tree_member){
-        //sends join message to all neighbours
-        for(auto &itr: neighbours){
-          sudp.sendTo((char*)& join_msg,size, itr.second.node_ip,itr.second.node_port);
+      //While not recieved a completed tree
+      while(receiving)
+      {
+        //Send join message to neighbours //IF NOT TREE SEND TO NEIGHBOURS
+        if(!tree_member)
+        {
+          for(auto &itr: neighbours)
+          {
+            sudp.sendTo((char*)& join_msg,size, itr.second.node_ip,itr.second.node_port);
+          }
         }
 
-        while(receiving){
+        //While message
+        while(receiving)
+        {
 
           f_join_tree buffer;
           //char* buffer;
           sender_data = sudp.receive(recv_buffer);
           memcpy((char*)&buffer,recv_buffer,sizeof(f_join_tree));
           type = getType((char*)&buffer);
-          switch(type){
+          switch(type)
+          {
             case 11: //join tree request from neighbour
               handleTreeRequest(sender_data.first,sender_data.second);
               break;
             case 12: //answer to this node's request.
-            case 18:
+            case 18: //ONLY IF NOT TREE
               ans_map[buffer.node_id] = buffer; //adds the answer to the answer list(map).
               receiving = handleTreeRequestAnswer(&ans_map);
               break;
@@ -211,7 +222,7 @@ void BlueNode::joinTree(){
               addChildNode(sender_data.first,sender_data.second,buffer.node_id);
               break;
             default: // invalid type.
-              //add log message here.
+              cout<<"Recieved invalid message type: "<<type;
               break;
           }
         } //end-while(receiving)
@@ -247,13 +258,16 @@ void BlueNode::addChildNode(char* ip, uint16_t port, uint16_t node_id){
 */
 void BlueNode::handleTreeRequest(char* ip, uint16_t port){
   size_t msg_size;
-  if(tree_member){ //member of tree, affirmative anser.
+  if(tree_member)
+  { //member of tree, affirmative anser.
     f_join_tree_y yes_ans;
     msg_size = sizeof(f_join_tree_y);
     yes_ans.type = 12;
     yes_ans.node_id = my_data.node_id;
     sudp.sendTo((char*)&yes_ans,msg_size,ip,port);
-  } else { //not root nor a part of tree yet,negative answer.
+  }
+  else
+  { //not root nor a part of tree yet,negative answer.
     f_join_tree_n no_ans;
     msg_size = sizeof(f_join_tree_n);
     no_ans.type = 18;
@@ -290,6 +304,16 @@ bool BlueNode::handleTreeRequestAnswer(std::map<uint16_t,f_join_tree> *ans_map){
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////File handling related functions////////////////////////
+/**
+* @brief This function handles recieving a hello, adding the neighbor IP,Port to map of neighbors
+* @param char* neighborIp, uint16_t Port and ID to add
+*/
+void handleHello(char*neighborIP,uint16_t neighborPort,uint16_t neighborID)
+{
+      //Add to map the neighbor with key neighborID the data IP,Port
+
+}
+
 
 /**
 * @brief This function handles the behavior when a node receives a chunk from a file.
@@ -317,14 +341,48 @@ void BlueNode::handleChunkRequest(f_chunk* current_msg){
 }
 
 /**
-* @brief
+* @brief This function handles checking and sending to parent Blue or green node wheter or not a chunk exists or passes the meessage along the kids
+* @param current_msg fchunk* exists message,
 */
-void BlueNode::handleExistsRequest(f_exists* current_msg){}
+void BlueNode::handleExistsRequest(f_exists* current_msg, char* solicitingIP, uint16_t solicitingPort)
+{
+  //Get file ID from current_msg
+
+  //Assume green did not ask
+  bool greenAsked=false;
+  //Check if id from file ID contained is the same as myGreenId
+    //if true, myGreenAsks= true
+
+  //If you can Open file from current message id
+    //Prepare an exists answer package
+    //If myGreenAsks
+      //Send it to my myGreenAsks
+    //else
+      //Send it to solicitng IP
+  //else
+    //Prepare an exists package and send to every node other in tree other than the soliciting one
+    //Save a pending answer with exists file ID as key and the IP/Port,counter of soliciter
+}
 
 /**
-* @brief
+* @brief Recieves an asnwer for an exists and passes the asnwer on
+* @param Answer package
 */
-void BlueNode::handleExistsRequestAnswer(){}
+void BlueNode::handleExistsRequestAnswer(f_exists_ans* answerFromChild)
+{
+  //prepare answer package
+  //If this pack is the last(N neighbors in map -1) || positive
+    //If the green ID in pack is my greenAsked
+      //Send to my green
+    //else
+      //Look for the FileID in map
+      //if found,
+        //Send answer to IP Port related to question
+        //delete ID from map
+  //else
+    //If finds file in map
+      // Add 1 to the counter
+}
 
 /**
 * @brief
@@ -357,9 +415,15 @@ void BlueNode::handleLocateRequest(){}
 void BlueNode::handleLocateRequestAnswer(){}
 
 /**
-* @brief
+* @brief if there is a chunk of the given file, it is deleted.
+* @param Frame with delete package frame
 */
-void BlueNode::handleDeleteRequest(){}
+void BlueNode::handleDeleteRequest(f_delete toDelete)
+{
+  //If you can Open a file with chunk frames
+    //Delete it
+  //Passes the file to every neighbor in the tree other than the one the gave the chunk
+}
 
 
 
@@ -501,13 +565,13 @@ void BlueNode::gbRequests(){
       case 2: //Exists request from another node.
         {
           f_exists* current_msg = (f_exists*) buffer;
-          handleExistsRequest(current_msg);
+        //  handleExistsRequest(current_msg);
         }
         break;
       case 3: //Answer to this node's exists request
         {
           f_exists_ans* current_msg = (f_exists_ans*) buffer;
-          handleExistsRequestAnswer();
+        //  handleExistsRequestAnswer();
         }
         break;
       case 4: // Complete request from another node.
@@ -549,7 +613,7 @@ void BlueNode::gbRequests(){
       case 10: //Delete request from another node.
         {
           f_delete* current_msg = (f_delete*) buffer;
-          handleDeleteRequest();
+          //handleDeleteRequest();
         }
         break;
       case 11: //request to join spanning tree from another node.

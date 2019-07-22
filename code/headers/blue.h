@@ -83,17 +83,23 @@ private:
     bool handleTreeRequestAnswer(std::map<uint16_t,f_join_tree>*);
 
     //File handling routines7	44	33	8	42	29	16	37	43	48
+    void handleHello(char*neighborIP,uint16_t neighborPort,uint16_t neighborID);
 
     void handleChunkRequest(f_chunk*);
-    void handleExistsRequest(f_exists*);
-    void handleExistsRequestAnswer();
+
+    void handleExistsRequest(f_exists* current_msg, char* solicitingIP, uint16_t solicitingPort);
+    void handleExistsRequestAnswer(f_exists_ans* answerFromChild);
+
     void handleCompleteRequest();
     void handleCompleteRequestAnswer();
+
     void handleGetRequest();
     void handleGetRequestAnswer();
+
     void handleLocateRequest();
     void handleLocateRequestAnswer();
-    void handleDeleteRequest();
+
+    void handleDeleteRequest(f_delete toDelete);
 
     //Thread routines.
     void receiver();

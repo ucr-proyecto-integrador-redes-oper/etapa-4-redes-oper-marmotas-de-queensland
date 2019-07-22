@@ -1,0 +1,17 @@
+Azul:
+g++ -o azul *cpp -std=c++11 -pthread
+
+./azul IP Port
+ej:
+./azul 10.0.2.8 8000
+
+./blueopen.sh numNodes IPNaranja PortNaranja
+ej:
+./blueopen.sh 25 10.0.2.8 8000
+
+Naranja:
+make
+./orange-node NaranjaPort NumNaranja PortAzul ArchivoGrafo IP Derecho PortDerecho
+Ej:
+./orange-node 9090 2 8000 grafo.csv 10.0.2.8 9090
+./orange-node 9090 2 8000 grafo.csv 10.0.2.8 9090

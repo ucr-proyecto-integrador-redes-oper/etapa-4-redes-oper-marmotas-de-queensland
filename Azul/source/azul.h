@@ -26,14 +26,23 @@ private:
   char* ipNaranja;
   int portNaranja;
   int miId;
+  bool tree_member;
   std::map<uint16_t,node_data> vecinos;
+  node_data parent_data;
+  std::map<uint16_t,node_data> hijosArbol;
 public:
   Azul(char*, int);
   ~Azul();
   void start();
-  void joinTree();
+  void joinGraph();
   void recibirVecinos();
   void enviarHello(node_data);
+
+  //Spanning Tree routines
+  void joinTree();
+  void agregarHijo(char*,uint16_t,uint16_t);
+  void handleTreeRequest(char*,uint16_t);
+  bool handleTreeRequestAnswer(std::map<uint16_t,f_join_tree>*);
 
 };
 
