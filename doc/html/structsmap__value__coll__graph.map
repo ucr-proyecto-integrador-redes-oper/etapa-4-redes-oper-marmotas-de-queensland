@@ -1,0 +1,4 @@
+<map id="smap_value" name="smap_value">
+<area shape="rect" id="node2" href="$sudp_8h.html#structsudp__rdata" title="{sudp_rdata\n|+ addr\l+ port\l|}" alt="" coords="5,13,92,105"/>
+<area shape="rect" id="node3" href="$sudp_8h.html#structsudp__frame" title="Struct for the Secure Udp frame encapsulation. Types: 0 —&gt; sender/receiver 1 —&gt; ack..." alt="" coords="117,5,207,112"/>
+</map>
