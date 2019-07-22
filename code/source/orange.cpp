@@ -43,7 +43,7 @@ Naranja::Naranja(int portNaranja,int cantidadNaranjas,short portAzul,string path
   limpiarArchivoDatosAzul();
   this->pathcsv = pathcsv ;
   count_Lines(pathcsv);
-  cout << line_count << endl;
+  cout <<"Numero de nodos en .csv encontrados: " <<line_count << endl;
   grafo = new BitMap(line_count+1); //CAMBIAR LUEGO: inicializar con n lineas CSV
   misAzules = new BitMap(line_count+1); //CAMBIAR LUEGO: inicializar con n lineas CSV
 
