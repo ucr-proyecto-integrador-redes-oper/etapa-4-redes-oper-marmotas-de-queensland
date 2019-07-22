@@ -13,6 +13,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string>
 
 #include "frames.h"
 #include "sudp.h"
@@ -41,7 +42,7 @@ private:
   //File handling routines
   void neighbour_raffle(f_chunk* current_msg);
 
-  void PutChunkRequest(f_chunk*); 
+  void PutChunkRequest(f_chunk*);
 
   void ExistsRequest(f_exists* current_msg, char* solicitingIP, uint16_t solicitingPort,uint16_t solicitingID);
   void ExistsAnswer(f_exists_ans* answerFromChild);
@@ -58,7 +59,7 @@ private:
   void DeleteRequest(f_delete* toDelete);
 
   //map with the ids of all 'owned' files and the # of chunks for each.
-  map<uint24_t,uint8_t> files;
+  map<const uint24_t,uint8_t,uint24_compare> files;
   string files_path;
   int num_of_chunks; //Number of chunks that have been stored on node
   map<uint16_t,node_data>::iterator it_vecinos;

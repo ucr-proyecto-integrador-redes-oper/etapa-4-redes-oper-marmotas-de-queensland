@@ -132,15 +132,19 @@ void Azul::neighbour_raffle(f_chunk* current_msg){
 * @brief This function handles the behavior when a node receives a chunk from a file.
 * @param current_msg fchunk* with the data about to be handled.
 */
-/* void Azul::PutChunkRequest(f_chunk* current_msg){
+  void Azul::PutChunkRequest(f_chunk* current_msg)
+{
   uint24_t current_file_id = current_msg->file_id;
   std::stringstream file;
   file << files_path << current_file_id.data << ".dat";
+
   if(files.count(current_file_id)){ //Node already has chunks from file stored.
     if(num_of_chunks<TOTAL_CHUNK_CAP){
       map<uint24_t,uint8_t>::iterator it = files.find(current_file_id);
       if (it->second<FILE_CHUNK_CAP){
         it->second++;
+        /*if (files[current_file_id]<FILE_CHUNK_CAP){
+          files[current_file_id]++;*/                   //Implementacion original de este if
         //Generates the file and writes the data chunk.
         std::fstream current_file_stream;
         current_file_stream.open(file.str(), std::ios::in | std::ios::binary | std::ios::app);
@@ -152,7 +156,7 @@ void Azul::neighbour_raffle(f_chunk* current_msg){
       //Go some place else
       neighbour_raffle(current_msg);
     }
-  } 
+  }
   else { //it's a chunk from a new file
     if(num_of_chunks<TOTAL_CHUNK_CAP){
       map<uint24_t,uint8_t>::iterator it = files.find(current_file_id);
@@ -168,7 +172,7 @@ void Azul::neighbour_raffle(f_chunk* current_msg){
       neighbour_raffle(current_msg);
     }
   }
-} */
+}
 
 /**
 * @brief This function handles checking and sending to parent Blue or green node wheter or not a chunk exists or passes the m3essage along the kids
@@ -235,7 +239,7 @@ void Azul::ExistsAnswer(f_exists_ans* answerFromChild){
 }
 
 /**
-* @brief Checks for chunks on tree and dictates whether an object 
+* @brief Checks for chunks on tree and dictates whether an object
 * can be reassembled or not
 * @param  "complete?" package from green node
 */
@@ -280,7 +284,9 @@ void Azul::LocateAnswer(){
 * @brief if there is a chunk of the given file, it is deleted.
 * @param Frame with delete package frame
 */
-/* void Azul::DeleteRequest(f_delete* toDelete){
+
+ void Azul::DeleteRequest(f_delete* toDelete)
+{
   uint24_t file_to_delete = toDelete->file_id;
   if(files.count(file_to_delete)){ //Node has chunks from file in store.
     //Delete chunks!
@@ -290,7 +296,7 @@ void Azul::LocateAnswer(){
   }
   //Passes the file to every neighbor in the tree other than the one the gave the chunk
 }
- */
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////Spanning tree related functions////////////////////////////

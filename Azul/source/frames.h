@@ -12,6 +12,11 @@ struct uint24_t {
   unsigned int data : 24;
 }__attribute__((packed));
 
+struct uint24_compare
+{
+    bool operator() ( const uint24_t a, const uint24_t b ) const
+    { return a.data > b.data; }
+};
 //////////////////////////////BLUE-GREEN NODES COMM FRAMES//////////////////////////////////////////////
 
 /**
