@@ -9,6 +9,6 @@ do
   sleep 1
 done
 
-sleep 5
+sleep 60
 echo All done.
 exit

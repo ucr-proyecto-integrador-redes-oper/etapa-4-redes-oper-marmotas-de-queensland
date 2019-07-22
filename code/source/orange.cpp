@@ -371,6 +371,12 @@ ip_converter.cargarIPInvertido(info_client.first, &addrInvertido);
       nuevaSolicitud.portAzul = info_client.second;
       // Se encola paquete
       guardarSolicitud(nuevaSolicitud); //Se encola solicitud
+    }else if(grafoCompleto){//si grafo completo
+      f_graph_pos pos_nodo;
+      pos_nodo.type = 15;
+      pos_nodo.node_id = -1;
+      pos_nodo.neighbor_id = -1;
+      this->sudpAzules->sendTo((char*)&pos_nodo, sizeof(pos_nodo),info_client.first,info_client.second);
     }
   }
 }
