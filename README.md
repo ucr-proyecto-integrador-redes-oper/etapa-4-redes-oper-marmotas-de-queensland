@@ -13,10 +13,10 @@ Para compilar:
 
 
 El ejecutable de los nodos naranja se llama orange-node, su main es orange_instantiator.cpp
-Parámetros: port Naranja, cantidad Naranjas, port Azul, pathcsv, ip Naranja Derecha, port Naranja Derecha.
+Parámetros: Puerto Naranja, cantidad Naranjas, Puerto Azul, pathcsv, IP Naranja Derecha, Puerto Naranja Derecha.
 
 El ejecutable de los nodos azules se llama blue-node, su main es blue_instantiator.cpp
-Parámetros:
+Parámetros: IP Server Naranja, Puerto Server Naranja.
 
 El script openblues.sh permite instanciar n nodos azules.
 Parámetros: Cantidad de nodos , IP del server, Puerto del server, IP del nodo siendo instanciado.
