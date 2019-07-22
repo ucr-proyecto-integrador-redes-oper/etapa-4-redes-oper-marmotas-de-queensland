@@ -41,7 +41,8 @@ void Azul::recibirVecinos(){
   std::pair<char*,uint16_t> sender_data;
   sockaddr_in info_nodo;
 
-  char* buffer = new char[F_PAYLOAD_CAP];
+  //char* buffer = new char[F_PAYLOAD_CAP];
+  char buffer[F_PAYLOAD_CAP];
   sender_data = sudp->receive(buffer);
   memcpy((char*)&vecino_info,buffer,sizeof(vecino_info));
 
