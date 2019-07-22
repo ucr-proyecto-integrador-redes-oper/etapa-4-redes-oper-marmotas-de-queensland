@@ -14,8 +14,10 @@ struct uint24_t {
 
 struct uint24_compare
 {
-    bool operator() ( const uint24_t a, const uint24_t b ) const
-    { return a.data > b.data; }
+  bool operator() ( const uint24_t a, const uint24_t b ) const
+  { return a.data > b.data; }
+  /*bool operator() (const uint24_t a, const uint24_t b) const
+  { return a.data == b.data; }*/
 };
 //////////////////////////////BLUE-GREEN NODES COMM FRAMES//////////////////////////////////////////////
 

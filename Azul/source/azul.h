@@ -59,7 +59,11 @@ private:
   void DeleteRequest(f_delete* toDelete);
 
   //map with the ids of all 'owned' files and the # of chunks for each.
-  map<const uint24_t,uint8_t,uint24_compare> files;
+  //uint24_t& operator< (uint24_t x);
+  //uint24_t& operator== (uint24_t y);
+  
+
+  map<const uint24_t,uint8_t,uint24_compare> files; //only working with one kind of overloading...
   string files_path;
   int num_of_chunks; //Number of chunks that have been stored on node
   map<uint16_t,node_data>::iterator it_vecinos;

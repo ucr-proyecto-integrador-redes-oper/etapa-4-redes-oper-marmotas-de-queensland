@@ -290,12 +290,31 @@ void Azul::LocateAnswer(){
 {
   uint24_t file_to_delete = toDelete->file_id;
   if(files.count(file_to_delete)){ //Node has chunks from file in store.
-    //Delete chunks!
+    //How many chunks?
     map<uint24_t,uint8_t>::iterator it;
+    int chunk_amount = 0;
     for(it = files.begin(); it != files.end(); it++){
+      if(it->first.data == file_to_delete.data){
+          chunk_amount++;
+      }
+    }
+    //Okay, so now we need to find files for these chunks and delete them
+    for(int i=0; i < chunk_amount; ++i){
+      std::fstream current_file_stream;
+      if(current_file_stream.is_open()){
+        current_file_stream.close();
+      }
+      remove((char *)& file_to_delete);
     }
   }
   //Passes the file to every neighbor in the tree other than the one the gave the chunk
+  //Creates delete pack
+  f_delete* delete_pack;
+  delete_pack = toDelete;
+  map<uint16_t,node_data>::iterator it;
+  for(it = vecinos.begin(); it != vecinos.end(); it++){
+    sudp->sendTo((char*)& delete_pack,sizeof(delete_pack), it->second.node_ip, it->second.node_port);
+  }
 }
 
 
