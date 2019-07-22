@@ -223,10 +223,10 @@ void Azul::recibirSolicitudesTree(){
 */
 void Azul::timeout(){
   std::unique_lock<std::mutex> mutex(m);
-  if(cv.wait_for(mutex, 30s) == std::cv_status::timeout){
+  if(cv.wait_for(mutex, 10s) == std::cv_status::timeout){
     // cout << "Timeout: Terminando el nodo: "<< this->miId << endl;
     this->imprimirVecinos();
-    this->imprimirHijos();
+    //this->imprimirHijos();
     continuar = false;
     exit(0);
   }
