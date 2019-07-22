@@ -4,6 +4,8 @@ Azul::Azul(char* ipNaranja, int portNaranja){
   this->sudp = new SecureUDP(2000);
   this->ipNaranja = ipNaranja;
   this->portNaranja = portNaranja;
+  files_path  = "../data/";
+  num_of_chunks = 0;
 }
 
 Azul::~Azul(){
@@ -15,6 +17,7 @@ void Azul::start()
   this->joinGraph();
   this->recibirVecinos();
   this->joinTree();
+  it_vecinos = vecinos.begin();
   cout<< "Soy el nodo: " << miId << "Mis vecinos en el arbol son: ";
   for(auto &itr : hijosArbol)
   {
@@ -102,6 +105,192 @@ void Azul::enviarHello(node_data destino){
   cout << "Enviando Hello a IP: "<< destino.node_ip << " port: "<< destino.node_port << endl;
   sudp->sendTo((char*)&hello,sizeof(hello),destino.node_ip,destino.node_port);
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////File handling routines////////////////////////////////////////////////////
+
+/**
+ * @brief Auxiliary method to alternate neighbours we need to send stuff to
+ */
+void Azul::neighbour_raffle(f_chunk* current_msg){
+  node_data neighbour;
+  //Check iterator to send to. If it is the end, begin anew.
+  if(it_vecinos != vecinos.end()){
+    neighbour=it_vecinos->second;
+    it_vecinos++;
+  }
+  else{
+    it_vecinos = vecinos.begin();
+    neighbour=it_vecinos->second;
+    it_vecinos++;
+  }
+  sudp->sendTo((char*)& current_msg,sizeof(current_msg), neighbour.node_ip, neighbour.node_port);
+}
+
+//AZUL-AZUL
+/**
+* @brief This function handles the behavior when a node receives a chunk from a file.
+* @param current_msg fchunk* with the data about to be handled.
+*/
+/* void Azul::PutChunkRequest(f_chunk* current_msg){
+  uint24_t current_file_id = current_msg->file_id;
+  std::stringstream file;
+  file << files_path << current_file_id.data << ".dat";
+  if(files.count(current_file_id)){ //Node already has chunks from file stored.
+    if(num_of_chunks<TOTAL_CHUNK_CAP){
+      map<uint24_t,uint8_t>::iterator it = files.find(current_file_id);
+      if (it->second<FILE_CHUNK_CAP){
+        it->second++;
+        //Generates the file and writes the data chunk.
+        std::fstream current_file_stream;
+        current_file_stream.open(file.str(), std::ios::in | std::ios::binary | std::ios::app);
+        current_file_stream.write((char*)current_msg,sizeof(f_chunk));
+        current_file_stream.close();
+      }
+    }
+    else{ //Either or both caps have been reached
+      //Go some place else
+      neighbour_raffle(current_msg);
+    }
+  } 
+  else { //it's a chunk from a new file
+    if(num_of_chunks<TOTAL_CHUNK_CAP){
+      map<uint24_t,uint8_t>::iterator it = files.find(current_file_id);
+      it->second = 1; //add chunk to map
+      //Store chunk!
+      std::fstream current_file_stream;
+      current_file_stream.open(file.str(), std::ios::in | std::ios::binary | std::ios::app);
+      current_file_stream.write((char*)current_msg,sizeof(f_chunk));
+      current_file_stream.close();
+    }
+    else{ //Either or both caps have been reached
+      //Go some place else
+      neighbour_raffle(current_msg);
+    }
+  }
+} */
+
+/**
+* @brief This function handles checking and sending to parent Blue or green node wheter or not a chunk exists or passes the m3essage along the kids
+* @param current_msg fchunk* exists message,
+*/
+void Azul::ExistsRequest(f_exists* current_msg, char* solicitingIP, uint16_t solicitingPort, uint16_t solicitingID){
+  //Get file ID from current_msg
+  uint24_t payload = current_msg->file_id;
+
+  //Store asking node's info to know who to send a reply later
+  node_data whosAsking;
+  whosAsking.node_ip = solicitingIP;
+  whosAsking.node_port = solicitingPort;
+  whosAsking.node_id = solicitingID;
+
+
+  //Assume green did not ask
+  bool greenAsked=false;
+
+  //Get payload bit by bit to later concatenate only group id and green id (first byte)
+  unsigned* bits = (unsigned*)malloc(sizeof(unsigned) * 23);
+  for(unsigned i = 0; i < 23; ++i){
+    bits[i] = (payload.data >> i) & 1;
+  }
+  unsigned green_id;
+  unsigned file_id;
+  for(unsigned i = 0; i < 23; ++i){
+    //welp. this is awkward.
+  }
+
+  //Check if id from file ID contained is the same as myGreenId
+    //if true, myGreenAsks= true
+
+  //If you can Open file from current message id
+    //Prepare an exists answer package
+    //If myDad myGreenAsks
+      //Send it to my myGreenAsks
+    //else
+      //Send it to solicitng IP
+  //else
+    //Prepare an exists package and send to every node other in tree other than the soliciting one
+    //Save a pending answer with exists file ID as key and the IP/Port,counter of soliciter
+  free(bits);
+}
+
+/**
+* @brief Recieves an answer for an exists and passes the answer on
+* @param Answer package
+*/
+void Azul::ExistsAnswer(f_exists_ans* answerFromChild){
+  //prepare answer package
+  f_exists_ans existsAns;
+  //If this pack is the last(N neighbors in map -1) || positive
+    //If the green ID in pack is my greenAsked
+      //Send to my green
+    //else
+      //Look for the FileID in map
+      //if found,
+        //Send answer to IP Port related to question
+        //delete ID from map
+  //else
+    //If finds file in map
+      // Add 1 to the counter
+}
+
+/**
+* @brief Checks for chunks on tree and dictates whether an object 
+* can be reassembled or not
+* @param  "complete?" package from green node
+*/
+void Azul::CompleteRequest(f_complete* completeReq){
+  //Gets file ID from request
+  //JUST SPREAD IT ALL OVER
+}
+/**
+* @brief Generates an answer for each chunk found
+*/
+void Azul::CompleteAnswer(){
+
+}
+
+/**
+* @brief
+*/
+void Azul::GetRequest(){
+
+}
+/**
+* @brief
+*/
+void Azul::GetAnswer(){
+
+}
+
+/**
+* @brief
+*/
+void Azul::LocateRequest(){
+
+}
+/**
+* @brief
+*/
+void Azul::LocateAnswer(){
+
+}
+
+/**
+* @brief if there is a chunk of the given file, it is deleted.
+* @param Frame with delete package frame
+*/
+/* void Azul::DeleteRequest(f_delete* toDelete){
+  uint24_t file_to_delete = toDelete->file_id;
+  if(files.count(file_to_delete)){ //Node has chunks from file in store.
+    //Delete chunks!
+    map<uint24_t,uint8_t>::iterator it;
+    for(it = files.begin(); it != files.end(); it++){
+    }
+  }
+  //Passes the file to every neighbor in the tree other than the one the gave the chunk
+}
+ */
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////Spanning tree related functions////////////////////////////
