@@ -5,7 +5,7 @@ echo "Creating $1 blue nodes with orange server ip $2 and port $3."
 echo "Nodes ip: $4"
 for (( i=0; i<$1; i++ ))
 do
-  ./azul $2 $3 &
+  ./blue-node $2 $3 &
   sleep 1
 done
 
